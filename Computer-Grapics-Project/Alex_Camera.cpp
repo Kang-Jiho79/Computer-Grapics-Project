@@ -31,8 +31,8 @@ glm::mat4 Alex_Camera::getViewMatrix() const
 
 glm::mat4 Alex_Camera::getProjectionMatrix(float screenWidth, float screenHeight) const
 {
-    // 분할 화면을 위해 종횡비를 절반 화면에 맞춤
-    float aspectRatio = (screenWidth / 2.0f) / screenHeight;
+    // 수정: 분할화면에서 올바른 종횡비 계산
+    float aspectRatio = screenWidth / screenHeight; // (screenWidth / 2.0f) 제거
     return glm::perspective(glm::radians(zoom), aspectRatio, 0.1f, 100.0f);
 }
 

@@ -6,7 +6,7 @@ namespace Steve {
 	public:
 		Part gBody, gHead, gArmL, gArmR, gLegL, gLegR, gBoundingBox;
 		GLuint textureID;
-		glm::vec2 pos = { 0.0f, 0.0f }; // x, z 좌표
+		glm::vec3 pos = { 4.5f, 1.5f, 2.0f };
 		glm::vec2 moveDir = { 0.0f, 0.0f }; // 이동 방향 벡터 x, z
 		GLfloat moveSpeed = 0.1f; // 이동 속도
 		GLfloat throwingSpeed = 0.2f; // 투사체 속도
@@ -16,6 +16,7 @@ namespace Steve {
 		GLint legState = 0; // 0: IDLE, 1: RUN
 		GLfloat legAngle = 0.0f; // 다리 회전 각도
 		GLfloat legDir = 1.0f; // 다리 회전 방향
+		glm::vec3 boundingBoxSize; // 바운딩 박스 크기 저장
 
 		Character(const char* texturePath) {
 			textureID = Init::loadTexture(texturePath);
@@ -56,13 +57,26 @@ namespace Steve {
 			float back = headOffset.z - headH.z;
 			float left = gBody.offset.x - bodyH.x;
 			float right = gBody.offset.x + bodyH.x;
+			boundingBoxSize = glm::vec3(right - left, top - bottom, front - back);
 			gBoundingBox = Init::makeLineCubePart(right - left, top - bottom, front - back);
 			gBoundingBox.offset = glm::vec3((left + right) / 2.0f, (top + bottom) / 2.0f, (front + back) / 2.0f);
 		}
 
 		void changeState(int body, int newState) {
-			if (body == 0) armState = newState; // arm
-			else legState = newState; // leg
+			if (body == 0) {
+				if (armState != newState) {
+					armState = newState; // arm
+					armAngle = 0.0f;
+					if (newState == 1) armDir = 1.0f; // RUN
+				}
+			}
+			else {
+				if (legState != newState) {
+					legState = newState; // leg
+					legAngle = 0.0f;
+					if (newState == 1) legDir = -1.0f; // RUN
+				}
+			}
 		}
 
 		void enterThrow() {
@@ -70,13 +84,93 @@ namespace Steve {
 			armAngle = glm::radians(-90.0f);
 		}
 
-		void update() {
+		// AABB 충돌 검사 함수
+		bool checkCollision(const glm::vec3& characterMin, const glm::vec3& characterMax, const Block& block) {
+			float blockSize = block.getSize();
+			glm::vec3 blockMin = { block.getX() - blockSize / 2.0f, block.getY() - blockSize / 2.0f, block.getZ() - blockSize / 2.0f };
+			glm::vec3 blockMax = { block.getX() + blockSize / 2.0f, block.getY() + blockSize / 2.0f, block.getZ() + blockSize / 2.0f };
+
+			bool collisionX = characterMin.x <= blockMax.x && characterMax.x >= blockMin.x;
+			bool collisionY = characterMin.y <= blockMax.y && characterMax.y >= blockMin.y;
+			bool collisionZ = characterMin.z <= blockMax.z && characterMax.z >= blockMin.z;
+
+			return collisionX && collisionY && collisionZ;
+		}
+
+		// 장애물과의 충돌 검사
+		bool isCollidingWithObstacles(const glm::vec3& nextPos, const Map& map) {
+			glm::vec3 halfSize = boundingBoxSize / 2.0f;
+			glm::vec3 characterMin = nextPos + gBoundingBox.offset - halfSize;
+			glm::vec3 characterMax = nextPos + gBoundingBox.offset + halfSize;
+
+			// 벽과 충돌 검사
+			const Wall& wall = map.getWall();
+			for (size_t i = 0; i < wall.getBlockCount(); ++i) {
+				if (checkCollision(characterMin, characterMax, wall.getBlock(i))) {
+					return true;
+				}
+			}
+
+			return false; // 충돌 없음
+		}
+
+		bool isOutsideFrontGround(const glm::vec3& nextPos, const Map& map) {
+			glm::vec3 halfSize = boundingBoxSize / 2.0f;
+			glm::vec3 characterMin = nextPos + gBoundingBox.offset - halfSize;
+			glm::vec3 characterMax = nextPos + gBoundingBox.offset + halfSize;
+
+			const Ground& frontGround = map.getFrontGround();
+			const Block& firstBlock = frontGround.getBlock(0, 0);
+			const Block& lastBlock = frontGround.getBlock(frontGround.getWidth() - 1, frontGround.getDepth() - 1);
+			float blockSize = firstBlock.getSize();
+
+			float minX = firstBlock.getX() - blockSize / 2.0f;
+			float maxX = lastBlock.getX() + blockSize / 2.0f;
+			float minZ = firstBlock.getZ() - blockSize / 2.0f;
+			float maxZ = lastBlock.getZ() + blockSize / 2.0f;
+
+			if (characterMin.x < minX || characterMax.x > maxX || characterMin.z < minZ || characterMax.z > maxZ) {
+				return true; // 경계 벗어남
+			}
+
+			return false; // 경계 내에 있음
+		}
+
+		void update(const Map& map) {
+			if (moveDir.x == 0.0f && moveDir.y == 0.0f) {
+				// 정지 상태
+				if (armState < 2) changeState(0, 0); // arm IDLE
+				changeState(1, 0); // leg IDLE
+			}
+			else {
+				// 이동 상태
+				if (armState < 2) changeState(0, 1); // arm RUN
+				changeState(1, 1); // leg RUN
+			}
+
+			// 이동 전 충돌 검사
+			glm::vec3 nextPos = pos;
+
+			// X축 이동 검사
+			nextPos.x += moveDir.x * moveSpeed;
+			if (!isCollidingWithObstacles(nextPos, map) && !isOutsideFrontGround(nextPos, map)) {
+				pos.x = nextPos.x;
+			}
+
+			// Z축 이동 검사
+			nextPos = pos; // X축 이동이 확정된 위치에서 다시 시작
+			nextPos.z += moveDir.y * moveSpeed;
+			if (!isCollidingWithObstacles(nextPos, map) && !isOutsideFrontGround(nextPos, map)) {
+				pos.z = nextPos.z;
+			}
+
 			switch (armState) {
 			case 0: // IDLE
 				break;
 			case 1: // RUN
 				armAngle += armDir * 0.05f;
 				if (armAngle > glm::radians(60.0f) || armAngle < glm::radians(-60.0f)) armDir = -armDir;
+
 				break;
 			case 2: // CHARGE
 				break;
@@ -97,6 +191,7 @@ namespace Steve {
 			case 1: // RUN
 				legAngle += legDir * 0.05f;
 				if (legAngle > glm::radians(60.0f) || legAngle < glm::radians(-60.0f)) legDir = -legDir;
+
 				break;
 			}
 		}
@@ -108,7 +203,7 @@ namespace Steve {
 			glBindVertexArray(0);
 		}
 
-		void draw(GLuint modelLoc, glm::mat4 trans) {
+		void draw(GLuint modelLoc) {
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
 
@@ -119,10 +214,7 @@ namespace Steve {
 				glBindVertexArray(0);
 				};
 
-			static float baseAngle = 0.0f;
-			baseAngle += 0.5f; if (baseAngle > 360.0f) baseAngle -= 360.0f;
-			glm::mat4 Mbase = trans;
-			Mbase = glm::rotate(Mbase, glm::radians(baseAngle), glm::vec3(0, 1, 0));
+			glm::mat4 Mbase = glm::translate(glm::mat4(1.0f), pos);
 
 			float alArm = armAngle; // 왼쪽에 보이는 팔 각도
 

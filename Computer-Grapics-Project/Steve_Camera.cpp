@@ -8,11 +8,16 @@ const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
 
 Steve_Camera::Steve_Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch)
-    : front(glm::vec3(0.0f, 0.0f, -1.0f)), movementSpeed(SPEED), mouseSensitivity(SENSITIVITY), zoom(ZOOM)
+    : front(glm::vec3(0.0f, 0.0f, 1.0f)), movementSpeed(SPEED), mouseSensitivity(SENSITIVITY), zoom(ZOOM)
 {
     this->position = position;
     this->worldUp = up;
-    this->yaw = yaw;
+    // 초기 yaw를 180도 회전시켜 카메라를 뒤로 향하게 함
+    this->yaw = yaw + 180.0f;
+    // 정규화 (0..360)
+    while (this->yaw >= 360.0f) this->yaw -= 360.0f;
+    while (this->yaw < 0.0f) this->yaw += 360.0f;
+
     this->pitch = pitch;
     updateCameraVectors();
 }
@@ -28,10 +33,11 @@ glm::mat4 Steve_Camera::getViewMatrix() const
     return glm::lookAt(position, position + front, up);
 }
 
+// Steve_Camera.cpp의 getProjectionMatrix 수정
 glm::mat4 Steve_Camera::getProjectionMatrix(float screenWidth, float screenHeight) const
 {
-    // 분할 화면을 위해 종횡비를 절반 화면에 맞춤
-    float aspectRatio = (screenWidth / 2.0f) / screenHeight;
+    // 수정: 분할화면에서 올바른 종횡비 계산
+    float aspectRatio = screenWidth / screenHeight; // (screenWidth / 2.0f) 제거
     return glm::perspective(glm::radians(zoom), aspectRatio, 0.1f, 100.0f);
 }
 
@@ -41,28 +47,21 @@ void Steve_Camera::processKeyboard(unsigned char key, float deltaTime)
     
     switch(key) {
         case 'w': case 'W':
-            // 위쪽 보기
             pitch += velocity * 10.0f;
             break;
         case 's': case 'S':
-            // 아래쪽 보기
             pitch -= velocity * 10.0f;
             break;
         case 'a': case 'A':
-            // 왼쪽 보기
             yaw -= velocity * 10.0f;
             break;
         case 'd': case 'D':
-            // 오른쪽 보기
             yaw += velocity * 10.0f;
             break;
     }
     
-    // pitch 제한
-    if (pitch > 89.0f)
-        pitch = 89.0f;
-    if (pitch < -89.0f)
-        pitch = -89.0f;
+    if (pitch > 89.0f) pitch = 89.0f;
+    if (pitch < -89.0f) pitch = -89.0f;
     
     updateCameraVectors();
 }
@@ -76,10 +75,8 @@ void Steve_Camera::processMouseMovement(float xOffset, float yOffset, bool const
     pitch += yOffset;
 
     if (constrainPitch) {
-        if (pitch > 89.0f)
-            pitch = 89.0f;
-        if (pitch < -89.0f)
-            pitch = -89.0f;
+        if (pitch > 89.0f) pitch = 89.0f;
+        if (pitch < -89.0f) pitch = -89.0f;
     }
 
     updateCameraVectors();
@@ -88,10 +85,8 @@ void Steve_Camera::processMouseMovement(float xOffset, float yOffset, bool const
 void Steve_Camera::processMouseScroll(float yOffset)
 {
     zoom -= (float)yOffset;
-    if (zoom < 1.0f)
-        zoom = 1.0f;
-    if (zoom > 45.0f)
-        zoom = 45.0f;
+    if (zoom < 1.0f) zoom = 1.0f;
+    if (zoom > 45.0f) zoom = 45.0f;
 }
 
 void Steve_Camera::updateCameraVectors()
@@ -105,3 +100,4 @@ void Steve_Camera::updateCameraVectors()
     right = glm::normalize(glm::cross(front, worldUp));
     up = glm::normalize(glm::cross(right, front));
 }
+

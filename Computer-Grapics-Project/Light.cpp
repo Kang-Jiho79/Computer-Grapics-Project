@@ -125,14 +125,14 @@ void LightManager::applyLighting(GLuint shaderProgram, const glm::vec3& viewPos)
 
 void LightManager::setupDefaultLighting() {
     clearLights();
-    
-    // 기본 점광원 하나 추가 (맵 중앙 위)
-    Light mainLight(glm::vec3(5.0f, 10.0f, 7.5f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 1.0f, 0.09f, 0.032f);
+
+    // 기본 점광원 하나 추가 (맵 중앙 위) 세기 감소
+    Light mainLight(glm::vec3(5.0f, 10.0f, 7.5f), glm::vec3(1.0f, 1.0f, 1.0f), 0.6f, 1.0f, 0.09f, 0.032f);
     addLight(mainLight);
-    
-    // 환경광 설정
-    setAmbientLight(glm::vec3(0.2f, 0.2f, 0.2f), 0.1f);
-    
+
+    // 환경광 설정 (세기 감소)
+    setAmbientLight(glm::vec3(0.18f, 0.18f, 0.18f), 0.06f);
+
     std::cout << "기본 조명 설정 완료" << std::endl;
 }
 
@@ -146,13 +146,13 @@ void LightManager::setupCameraFollowLight(const glm::vec3& cameraPos) {
 
 void LightManager::setupSceneStaticLight() {
     clearLights();
-    
-    // 맵을 잘 비추는 메인 조명 설정 (더 밝게)
-    Light mainLight(glm::vec3(5.0f, 15.0f, 7.5f), glm::vec3(1.2f, 1.2f, 1.2f), 1.2f, 1.0f, 0.05f, 0.02f);
+
+    // 맵을 잘 비추는 메인 조명 설정 (세기 감소)
+    Light mainLight(glm::vec3(5.0f, 15.0f, 7.5f), glm::vec3(1.0f, 1.0f, 1.0f), 0.9f, 1.0f, 0.05f, 0.02f);
     addLight(mainLight);
-    
-    // 환경광 설정 (더 밝게)
-    setAmbientLight(glm::vec3(0.3f, 0.3f, 0.3f), 0.2f);
-    
+
+    // 환경광 설정 (세기 감소)
+    setAmbientLight(glm::vec3(0.22f, 0.22f, 0.22f), 0.12f);
+
     std::cout << "정적 장면 조명 설정 완료" << std::endl;
 }

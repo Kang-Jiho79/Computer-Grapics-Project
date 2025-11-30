@@ -101,6 +101,7 @@ void MouseMotion(int x, int y);
 void Keyboard(unsigned char key, int x, int y);
 void KeyboardUp(unsigned char key, int x, int y); // 키보드 릴리즈 함수 추가
 void SpecialKeyboard(int key, int x, int y);
+void SpecialKeyboardUp(int key, int x, int y); // 추가: 특수키 릴리즈 선언
 void TimerFunction(int value);
 
 void make_shaderProgram();
@@ -189,6 +190,7 @@ int main(int argc, char** argv)
 	glutKeyboardFunc(Keyboard);
 	glutKeyboardUpFunc(KeyboardUp); // 키보드 릴리즈 콜백 추가
 	glutSpecialFunc(SpecialKeyboard);
+	glutSpecialUpFunc(SpecialKeyboardUp); // ← 추가: 특수키 릴리즈 등록
 	glutMouseFunc(Mouse);
 	glutPassiveMotionFunc(MouseMotion);
 	glutTimerFunc(16, TimerFunction, 1);
@@ -391,48 +393,54 @@ void make_shaderProgram()
 
 GLvoid drawScene()
 {
+	if (shaderProgramID == 0) return;
+
+	glUseProgram(shaderProgramID);
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// 현재 윈도우 크기 사용 (사용자가 창 크기 조절해도 반영)
+	int winW = glutGet(GLUT_WINDOW_WIDTH);
+	int winH = glutGet(GLUT_WINDOW_HEIGHT);
+	if (winW <= 0) winW = WinX;
+	if (winH <= 0) winH = WinY;
+
 	if (splitScreenMode) {
-		drawSplitScreen();
-	} else {
-		// 기본 3인칭 시점
-		glUseProgram(shaderProgramID);
-		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glViewport(0, 0, WinX, WinY);
+		// 분할 화면 렌더링
+		// 카메라 위치를 캐릭터 기준으로 업데이트
+		if (steve) steveCamera.updateFromCharacterPosition(steve->pos);
+		if (alex) alexCamera.updateFromCharacterPosition(alex->pos);
 
+		// 왼쪽: Steve
+		glViewport(0, 0, winW / 2, winH);
+		glm::mat4 steveView = steveCamera.getViewMatrix();
+		glm::mat4 steveProj = steveCamera.getProjectionMatrix(winW / 2, winH);
+		renderWorld(steveView, steveProj);
+
+		// 깊이 버퍼만 지워서 오른쪽 렌더가 겹치지 않게 함
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		// 오른쪽: Alex
+		glViewport(winW / 2, 0, winW - winW / 2, winH);
+		glm::mat4 alexView = alexCamera.getViewMatrix();
+		glm::mat4 alexProj = alexCamera.getProjectionMatrix(winW - winW / 2, winH);
+		renderWorld(alexView, alexProj);
+	}
+	else {
+		// 단일 화면(기본 3인칭)
+		glViewport(0, 0, winW, winH);
 		glm::mat4 view = camera.getViewMatrix();
-		glm::mat4 proj = camera.getProjectionMatrix(WinX, WinY);
-
+		glm::mat4 proj = camera.getProjectionMatrix(winW, winH);
 		renderWorld(view, proj);
 	}
 
 	glutSwapBuffers();
 }
 
-GLvoid drawSplitScreen()
-{
-	glUseProgram(shaderProgramID);
-	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// 캐릭터 위치에 따른 카메라 업데이트
-	steveCamera.updateFromCharacterPosition(stevePosition);
-	alexCamera.updateFromCharacterPosition(alexPosition);
-
-	// 왼쪽 화면 - Steve 1인칭 시점
-	glViewport(0, 0, WinX / 2, WinY);
-	glm::mat4 steveView = steveCamera.getViewMatrix();
-	glm::mat4 steveProj = steveCamera.getProjectionMatrix(WinX, WinY);
-	renderWorld(steveView, steveProj);
-
-	// 화면 분할선 그리기 (선택사항)
-	glClear(GL_DEPTH_BUFFER_BIT); // 깊이 버퍼만 클리어
-
-	// 오른쪽 화면 - Alex 1인칭 시점
-	glViewport(WinX / 2, 0, WinX / 2, WinY);
-	glm::mat4 alexView = alexCamera.getViewMatrix();
-	glm::mat4 alexProj = alexCamera.getProjectionMatrix(WinX, WinY);
-	renderWorld(alexView, alexProj);
+GLvoid drawSplitScreen() {
+	// 이제 drawScene이 분할/단일을 모두 다루므로 이 함수는 호출 경로 필요시 비워두거나 drawScene에 통합된 상태 유지.
+	// 기존 코드와 중복되지 않도록 drawScene이 사용되도록 유지하세요.
+	// (함수 정의는 남겨두되 내부는 비워두어도 무방)
 }
 
 GLvoid renderWorld(const glm::mat4& view, const glm::mat4& projection)
@@ -442,74 +450,50 @@ GLvoid renderWorld(const glm::mat4& view, const glm::mat4& projection)
 	glFrontFace(GL_CCW);
 	glEnable(GL_DEPTH_TEST);
 
-	// 유니폼 위치 가져오기
 	unsigned int modelLoc = glGetUniformLocation(shaderProgramID, "model");
 	unsigned int viewLoc = glGetUniformLocation(shaderProgramID, "view");
 	unsigned int projLoc = glGetUniformLocation(shaderProgramID, "projection");
 
-	// 조명 설정
 	GLint lightPosLoc = glGetUniformLocation(shaderProgramID, "lightPos");
 	GLint lightColorLoc = glGetUniformLocation(shaderProgramID, "lightColor");
 	GLint viewPosLoc = glGetUniformLocation(shaderProgramID, "viewPos");
 	GLint lightingEnabledLoc = glGetUniformLocation(shaderProgramID, "lightingEnabled");
 	GLint useTextureLoc = glGetUniformLocation(shaderProgramID, "useTexture");
 
-	// 조명 활성화
-	if (lightingEnabledLoc != -1) {
-		glUniform1i(lightingEnabledLoc, 1); // true
-	}
+	if (lightingEnabledLoc != -1) glUniform1i(lightingEnabledLoc, 1);
 
-	// 조명 위치와 색상 설정
 	if (lightPosLoc != -1) {
 		glm::vec3 lightPos(5.0f, 8.0f, 7.5f);
 		glUniform3fv(lightPosLoc, 1, &lightPos[0]);
 	}
-
 	if (lightColorLoc != -1) {
 		glm::vec3 lightColor(1.5f, 1.5f, 1.5f);
 		glUniform3fv(lightColorLoc, 1, &lightColor[0]);
 	}
 
-	// 뷰와 프로젝션 매트릭스 설정
-	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
+	if (viewLoc != -1) glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+	if (projLoc != -1) glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
 
-	// 맵 렌더링
-	if (useTextureLoc != -1) {
-		glUniform1i(useTextureLoc, 0); // false
-	}
+	if (useTextureLoc != -1) glUniform1i(useTextureLoc, 0);
 	gameMap.render();
 
-	// 눈 시스템 렌더링
-	if (useTextureLoc != -1) {
-		glUniform1i(useTextureLoc, 1); // true
-	}
+	if (useTextureLoc != -1) glUniform1i(useTextureLoc, 1);
 	snowSystem.render(shaderProgramID);
 
-	// 캐릭터 렌더링
-	if (useTextureLoc != -1) {
-		glUniform1i(useTextureLoc, 1); // true
-	}
+	if (useTextureLoc != -1) glUniform1i(useTextureLoc, 1);
 
-	// Steve 캐릭터 렌더링
+	// Steve / Alex: 클래스 내부 pos를 사용해서 그리기
 	if (steve) {
-		glm::mat4 steveTransform = glm::translate(glm::mat4(1.0f), stevePosition);
-		steve->draw(modelLoc, steveTransform);
+		// steve->draw 내부에서 pos 기반으로 변환하도록 구현되어 있으므로 model transform 전달 불필요
+		steve->draw(modelLoc);
+	}
+	if (alex) {
+		alex->draw(modelLoc);
 	}
 
-	// Alex 캐릭터 렌더링
-	if (alex) {
-		glm::mat4 alexTransform = glm::translate(glm::mat4(1.0f), alexPosition);
-		alex->draw(modelLoc, alexTransform);
-	}
-	
-	// 눈덩이들 렌더링
-	if (useTextureLoc != -1) {
-		glUniform1i(useTextureLoc, 0); // false
-	}
-	
+	if (useTextureLoc != -1) glUniform1i(useTextureLoc, 0);
 	for (const auto& snowball : snowballs) {
-		snowball.render(shaderProgramID, glm::vec3(1.0f, 1.0f, 1.0f)); // 흰색
+		snowball.render(shaderProgramID, glm::vec3(1.0f));
 	}
 }
 
@@ -521,56 +505,42 @@ GLvoid Reshape(int w, int h)
 // per-frame 이동 업데이트 (KeyManager 폴링)
 void updateStevePosition(float deltaTime)
 {
-	const float SPEED = 3.0f;
-	glm::vec3 movement(0.0f);
+	steve->moveDir = glm::vec2(0.0f, 0.0f);
 
-	if (input.isKeyDown('w') || input.isKeyDown('W')) movement += glm::vec3(0.0f, 0.0f, -1.0f);
+	if (input.isKeyDown('w') || input.isKeyDown('W')) steve->moveDir.y = -1.0f;
 	if (input.isKeyDown('s') || input.isKeyDown('S')) {
-		movement += glm::vec3(0.0f, 0.0f, 1.0f);
+		steve->moveDir.y = 1.0f;
 		if (!steveThrowFlag) { steveThrowFlag = true; steve->changeState(0, 2); } // CHARGE
 	}
-	if (input.isKeyDown('a') || input.isKeyDown('A')) movement += glm::vec3(-1.0f, 0.0f, 0.0f);
-	if (input.isKeyDown('d') || input.isKeyDown('D')) movement += glm::vec3(1.0f, 0.0f, 0.0f);
+	if (input.isKeyDown('a') || input.isKeyDown('A')) steve->moveDir.x = 1.0f;
+	if (input.isKeyDown('d') || input.isKeyDown('D')) steve->moveDir.x = -1.0f;
 
-	if (glm::length(movement) > 0.0f) {
-		movement = glm::normalize(movement) * SPEED * deltaTime;
-		stevePosition += movement;
-		steve->changeState(1, 1); // RUN
-	}
-	else {
-		if (!input.isKeyDown('s') && steveThrowFlag) {
-			steveThrowFlag = false;
-			steve->changeState(0, 0); // arm idle
-		}
+	// 정지 시 CHARGE 플래그 해제 처리 (키 놓였을 때)
+	if (!input.isKeyDown('s') && steveThrowFlag) {
+		steveThrowFlag = false;
+		steve->changeState(0, 0); // arm idle
 	}
 }
 
 void updateAlexPosition(float deltaTime)
 {
-	const float SPEED = 3.0f;
-	glm::vec3 movement(0.0f);
+	alex->moveDir = glm::vec2(0.0f, 0.0f);
 
-	if (input.isKeyDown('i') || input.isKeyDown('I')) movement += glm::vec3(0.0f, 0.0f, -1.0f);
-	if (input.isKeyDown('k') || input.isKeyDown('K')) movement += glm::vec3(0.0f, 0.0f, 1.0f);
+	if (input.isKeyDown('i') || input.isKeyDown('I')) alex->moveDir.y = -1.0f;
+	if (input.isKeyDown('k') || input.isKeyDown('K')) alex->moveDir.y = 1.0f;
 	if (input.isKeyDown('j') || input.isKeyDown('J')) {
-		movement += glm::vec3(-1.0f, 0.0f, 0.0f);
+		alex->moveDir.x = -1.0f;
 		if (!alexThrowFlag) { alexThrowFlag = true; alex->changeState(0, 2); } // CHARGE
 	}
-	if (input.isKeyDown('l') || input.isKeyDown('L')) movement += glm::vec3(1.0f, 0.0f, 0.0f);
+	if (input.isKeyDown('l') || input.isKeyDown('L')) alex->moveDir.x = 1.0f;
 
-	if (glm::length(movement) > 0.0f) {
-		movement = glm::normalize(movement) * SPEED * deltaTime;
-		alexPosition += movement;
-		alex->changeState(1, 1); // RUN
-	}
-	else {
-		if (!input.isKeyDown('j') && alexThrowFlag) {
-			alexThrowFlag = false;
-			alex->changeState(0, 0); // arm idle
-		}
+	if (!input.isKeyDown('j') && alexThrowFlag) {
+		alexThrowFlag = false;
+		alex->changeState(0, 0); // arm idle
 	}
 }
 
+// 이동 상태 확인은 그대로 유지 (내부 상태가 바뀌면 Character.changeState로 처리됨)
 void checkSteveMoving()
 {
 	bool moving = input.isKeyDown('w') || input.isKeyDown('W') ||
@@ -579,6 +549,7 @@ void checkSteveMoving()
 		input.isKeyDown('d') || input.isKeyDown('D');
 	if (!moving && steve) steve->changeState(1, 0); // leg idle
 }
+
 
 void checkAlexMoving()
 {
@@ -589,34 +560,34 @@ void checkAlexMoving()
 	if (!moving && alex) alex->changeState(1, 0); // leg idle
 }
 
-// TimerFunction: 매 프레임 키 상태 폴링으로 이동 처리
+// TimerFunction: moveDir 설정 후 Character::update(map) 호출 — 클래스 내부 충돌 로직 수행
 void TimerFunction(int value)
 {
-	float deltaTime = 0.016f; // 프레임 고정(원하면 glutGet 기반으로 계산 가능)
+	float deltaTime = 0.016f;
 
-	// 눈덩이들 업데이트
-	for (auto& snowball : snowballs) snowball.update(deltaTime, snowSystem, gameMap);
-
-	// 제거
+	// 눈덩이 업데이트
+	for (auto& sb : snowballs) sb.update(deltaTime, snowSystem, gameMap);
 	snowballs.erase(std::remove_if(snowballs.begin(), snowballs.end(),
 		[](const Snowball& s) { return !s.getIsActive(); }), snowballs.end());
 
-	// 키 기반 이동 업데이트
+	// 키 기반 moveDir 설정 (KeyManager 폴링)
 	updateStevePosition(deltaTime);
 	updateAlexPosition(deltaTime);
 
-	// 이동 상태 점검
+	// Character에서 충돌검사 포함한 이동 수행
+	if (steve) steve->update(gameMap);
+	if (alex) alex->update(gameMap);
+
+	// 이동 상태 점검(정지시 IDLE)
 	checkSteveMoving();
 	checkAlexMoving();
 
-	// 카메라(3인칭) 위치 업데이트 (필요 시)
+	// 카메라 위치 동기화
 	cameraPos = camera.position;
 	cameraFront = camera.front;
 	cameraUp = camera.up;
 
-	// 애니메이션 업데이트
-	if (steve) steve->update();
-	if (alex) alex->update();
+	// 애니메이션(내부) 업데이트 이미 Character::update에서 처리됨
 
 	glutPostRedisplay();
 	glutTimerFunc(16, TimerFunction, 1);
