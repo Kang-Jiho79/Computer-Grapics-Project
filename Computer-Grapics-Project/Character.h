@@ -149,4 +149,59 @@ namespace Init {
 		p.pivot = pivotLocal;
 		return p;
 	}
+
+	Part makeLineCubePart(float width, float height, float depth) {
+		std::vector<glm::vec3> vertices;
+		float w = width / 2.0f;
+		float h = height / 2.0f;
+		float d = depth / 2.0f;
+
+		// 8개의 꼭짓점 정의
+		glm::vec3 p[8];
+		p[0] = glm::vec3(-w, -h, -d);
+		p[1] = glm::vec3(w, -h, -d);
+		p[2] = glm::vec3(w, -h, d);
+		p[3] = glm::vec3(-w, -h, d);
+		p[4] = glm::vec3(-w, h, -d);
+		p[5] = glm::vec3(w, h, -d);
+		p[6] = glm::vec3(w, h, d);
+		p[7] = glm::vec3(-w, h, d);
+
+		// 12개의 선을 위한 24개의 정점 데이터
+		// 아래쪽 4개 선
+		vertices.push_back(p[0]); vertices.push_back(p[1]);
+		vertices.push_back(p[1]); vertices.push_back(p[2]);
+		vertices.push_back(p[2]); vertices.push_back(p[3]);
+		vertices.push_back(p[3]); vertices.push_back(p[0]);
+
+		// 위쪽 4개 선
+		vertices.push_back(p[4]); vertices.push_back(p[5]);
+		vertices.push_back(p[5]); vertices.push_back(p[6]);
+		vertices.push_back(p[6]); vertices.push_back(p[7]);
+		vertices.push_back(p[7]); vertices.push_back(p[4]);
+
+		// 옆면 4개 선
+		vertices.push_back(p[0]); vertices.push_back(p[4]);
+		vertices.push_back(p[1]); vertices.push_back(p[5]);
+		vertices.push_back(p[2]); vertices.push_back(p[6]);
+		vertices.push_back(p[3]); vertices.push_back(p[7]);
+
+		Part part;
+		part.count = vertices.size();
+
+		glGenVertexArrays(1, &part.vao);
+		glBindVertexArray(part.vao);
+
+		glGenBuffers(1, &part.vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, part.vbo);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
+		glEnableVertexAttribArray(0);
+
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		return part;
+	}
 }

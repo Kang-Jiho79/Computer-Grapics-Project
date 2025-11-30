@@ -106,8 +106,6 @@ void LightManager::applyLighting(GLuint shaderProgram, const glm::vec3& viewPos)
             glUniform3fv(lightColorLoc, 1, &finalColor[0]);
         }
         
-        std::cout << "조명 적용 - 위치: (" << mainLight.position.x << ", " 
-                  << mainLight.position.y << ", " << mainLight.position.z << ")" << std::endl;
     } else {
         // 조명이 없으면 기본값 설정
         GLint lightPosLoc = glGetUniformLocation(shaderProgram, "lightPos");

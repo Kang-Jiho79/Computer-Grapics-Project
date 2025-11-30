@@ -8,7 +8,7 @@
 // STB_IMAGE_IMPLEMENTATION은 이미 Main.cpp에서 정의되어 있으므로 여기서는 정의하지 않음
 #include "stb_image.h"
 
-Block::Block() : x(0.0f), y(0.0f), z(0.0f), size(1.0f), texturePath("oak_planks.png")
+Block::Block() : x(0.0f), y(0.0f), z(0.0f), size(10.0f), texturePath("oak_planks.png")
 {
     // 생성자에서는 OpenGL 리소스를 생성하지 않음
 }
