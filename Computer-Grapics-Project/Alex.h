@@ -1,5 +1,6 @@
 #pragma once
 #include "Character.h"
+#include "Map.h"
 
 namespace Alex {
 	class Character {
