@@ -79,9 +79,13 @@ namespace Steve {
 			}
 		}
 
+		void enterCharge() {
+			armState = 2; // CHARGE
+			armAngle = -90.0f;
+		}
+
 		void enterThrow() {
-			armState = 2; // THROW
-			armAngle = glm::radians(-90.0f);
+			armState = 3; // THROW
 		}
 
 		// AABB 충돌 검사 함수
@@ -164,6 +168,8 @@ namespace Steve {
 				pos.z = nextPos.z;
 			}
 
+			std::cout << "Throwing arm angle: " << armAngle << std::endl;
+
 			switch (armState) {
 			case 0: // IDLE
 				break;
@@ -175,7 +181,7 @@ namespace Steve {
 			case 2: // CHARGE
 				break;
 			case 3: // THROW
-				armAngle += 0.01f;
+				armAngle += 0.08f;
 
 				if (armAngle > -88.0f) {
 					armAngle = 0.0f;
@@ -219,7 +225,7 @@ namespace Steve {
 			float alArm = armAngle; // 왼쪽에 보이는 팔 각도
 
 			float arArm = -alArm;
-			if (armState == 3) arArm = 0.0f; // 던지는 동작에서는 오른팔이 앞으로 쭉 뻗음
+			if (armState >= 2) arArm = 0.0f; // 던지는 동작에서는 오른팔이 앞으로 쭉 뻗음
 
 			float aLeg = std::sin(legAngle) * glm::radians(60.0f);
 			aLeg *= -1.0f; // 다리는 팔과 반대 방향으로 움직임

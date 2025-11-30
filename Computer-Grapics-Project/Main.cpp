@@ -223,12 +223,16 @@ void Keyboard(unsigned char key, int x, int y)
 			isCharging = true;
 			chargeStartTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
 			if (activeCharacter == STEVE) {
-				steve->enterThrow();
-				std::cout << "Steve 던지기 준비..." << std::endl;
+				if (steve->armState < 2) {
+					steve->enterCharge(); // CHARGE 상태로 변경
+					std::cout << "Steve 던지기 준비..." << std::endl;
+				}
 			}
 			else {
-				alex->enterThrow();
-				std::cout << "Alex 던지기 준비..." << std::endl;
+				if (alex->armState < 2) {
+					alex->enterCharge();
+					std::cout << "Alex 던지기 준비..." << std::endl;
+				}
 			}
 		}
 		break;
@@ -258,12 +262,12 @@ void KeyboardUp(unsigned char key, int x, int y)
 			glm::vec3 shootDirection;
 			if (activeCharacter == STEVE) {
 				currentPlayerPos = stevePosition;
-				steve->changeState(0, 3); // THROW
+				steve->enterThrow();
 				shootDirection = splitScreenMode ? steveCamera.getFront() : camera.front;
 			}
 			else {
 				currentPlayerPos = alexPosition;
-				alex->changeState(0, 3); // THROW
+				alex->enterThrow(); // THROW
 				shootDirection = splitScreenMode ? alexCamera.getFront() : camera.front;
 			}
 

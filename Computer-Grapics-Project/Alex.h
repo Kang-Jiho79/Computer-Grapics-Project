@@ -81,9 +81,13 @@ namespace Alex {
 			}
 		}
 
+		void enterCharge() {
+			armState = 2; // CHARGE
+			armAngle = -90.0f;
+		}
+
 		void enterThrow() {
-			armState = 2; // THROW
-			armAngle = glm::radians(-90.0f);
+			armState = 3; // THROW
 		}
 
 		// AABB 충돌 검사 함수
@@ -177,7 +181,7 @@ namespace Alex {
 			case 2: // CHARGE
 				break;
 			case 3: // THROW
-				armAngle += 0.01f;
+				armAngle += 0.08f;
 
 				if (armAngle > -88.0f) {
 					armAngle = 0.0f;
