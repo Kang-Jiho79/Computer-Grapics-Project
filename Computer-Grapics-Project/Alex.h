@@ -226,7 +226,7 @@ namespace Alex {
 			float alArm = armAngle; // 왼쪽에 보이는 팔 각도
 
 			float arArm = -alArm;
-			if (armState == 3) arArm = 0.0f; // 던지는 동작에서는 오른팔이 앞으로 쭉 뻗음
+			if (armState >= 2) arArm = 0.0f; // 던지는 동작에서는 오른팔이 앞으로 쭉 뻗음
 
 			float aLeg = std::sin(legAngle) * glm::radians(60.0f);
 			aLeg *= -1.0f; // 다리는 팔과 반대 방향으로 움직임

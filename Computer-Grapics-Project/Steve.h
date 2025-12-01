@@ -168,8 +168,6 @@ namespace Steve {
 				pos.z = nextPos.z;
 			}
 
-			std::cout << "Throwing arm angle: " << armAngle << std::endl;
-
 			switch (armState) {
 			case 0: // IDLE
 				break;

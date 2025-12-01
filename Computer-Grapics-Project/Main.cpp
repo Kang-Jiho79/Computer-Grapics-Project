@@ -511,37 +511,20 @@ void updateStevePosition(float deltaTime)
 {
 	steve->moveDir = glm::vec2(0.0f, 0.0f);
 
-	if (input.isKeyDown('w') || input.isKeyDown('W')) steve->moveDir.y = -1.0f;
-	if (input.isKeyDown('s') || input.isKeyDown('S')) {
-		steve->moveDir.y = 1.0f;
-		if (!steveThrowFlag) { steveThrowFlag = true; steve->changeState(0, 2); } // CHARGE
-	}
-	if (input.isKeyDown('a') || input.isKeyDown('A')) steve->moveDir.x = 1.0f;
-	if (input.isKeyDown('d') || input.isKeyDown('D')) steve->moveDir.x = -1.0f;
-
-	// 정지 시 CHARGE 플래그 해제 처리 (키 놓였을 때)
-	if (!input.isKeyDown('s') && steveThrowFlag) {
-		steveThrowFlag = false;
-		steve->changeState(0, 0); // arm idle
-	}
+	if (input.isKeyDown('w') || input.isKeyDown('W')) steve->moveDir.y += 1.0f;
+	if (input.isKeyDown('s') || input.isKeyDown('S')) steve->moveDir.y += -1.0f;
+	if (input.isKeyDown('a') || input.isKeyDown('A')) steve->moveDir.x += 1.0f;
+	if (input.isKeyDown('d') || input.isKeyDown('D')) steve->moveDir.x += -1.0f;
 }
 
 void updateAlexPosition(float deltaTime)
 {
 	alex->moveDir = glm::vec2(0.0f, 0.0f);
 
-	if (input.isKeyDown('i') || input.isKeyDown('I')) alex->moveDir.y = -1.0f;
-	if (input.isKeyDown('k') || input.isKeyDown('K')) alex->moveDir.y = 1.0f;
-	if (input.isKeyDown('j') || input.isKeyDown('J')) {
-		alex->moveDir.x = -1.0f;
-		if (!alexThrowFlag) { alexThrowFlag = true; alex->changeState(0, 2); } // CHARGE
-	}
-	if (input.isKeyDown('l') || input.isKeyDown('L')) alex->moveDir.x = 1.0f;
-
-	if (!input.isKeyDown('j') && alexThrowFlag) {
-		alexThrowFlag = false;
-		alex->changeState(0, 0); // arm idle
-	}
+	if (input.isKeyDown('i') || input.isKeyDown('I')) alex->moveDir.y += -1.0f;
+	if (input.isKeyDown('k') || input.isKeyDown('K')) alex->moveDir.y += 1.0f;
+	if (input.isKeyDown('j') || input.isKeyDown('J')) alex->moveDir.x += -1.0f;
+	if (input.isKeyDown('l') || input.isKeyDown('L')) alex->moveDir.x += 1.0f;
 }
 
 // 이동 상태 확인은 그대로 유지 (내부 상태가 바뀌면 Character.changeState로 처리됨)
