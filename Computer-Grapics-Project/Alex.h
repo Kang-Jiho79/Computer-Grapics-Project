@@ -1,6 +1,7 @@
 #pragma once
 #include "Character.h"
 #include "Map.h"
+#include "Snow.h"
 
 namespace Alex {
 	class Character {
@@ -10,7 +11,7 @@ namespace Alex {
 		glm::vec3 pos = { 4.5f, 1.5f, 12.0f };
 		glm::vec2 moveDir = { 0.0f, 0.0f }; // 이동 방향 벡터 x, z
 		GLfloat moveSpeed = 0.1f; // 이동 속도
-		GLfloat throwingSpeed = 0.2f; // 투사체 속도
+		GLfloat throwingSpeed = 1.0f; // 투사체 속도
 		GLint armState = 0; // 0: IDLE, 1: RUN, 2: CHARGE 3: THROW
 		GLfloat armAngle = 0.0f; // 팔 회전 각도
 		GLfloat armDir = 1.0f; // 팔 회전 방향
@@ -120,6 +121,40 @@ namespace Alex {
 			return false; // 충돌 없음
 		}
 
+		int isCollidingWithSnow(const glm::vec3& nextPos, const Snow& snow) {
+			glm::vec3 halfSize = boundingBoxSize / 2.0f;
+			glm::vec3 characterMin = nextPos + gBoundingBox.offset - halfSize;
+			glm::vec3 characterMax = nextPos + gBoundingBox.offset + halfSize;
+
+			// 캐릭터의 바운딩 박스가 차지하는 그리드 범위를 계산합니다.
+			int minGridX = static_cast<int>(floor(characterMin.x));
+			int maxGridX = static_cast<int>(ceil(characterMax.x));
+			int minGridZ = static_cast<int>(floor(characterMin.z));
+			int maxGridZ = static_cast<int>(ceil(characterMax.z));
+
+			// 모든 관련 그리드 셀을 순회하며 충돌을 검사합니다.
+			for (int gx = minGridX; gx <= maxGridX; ++gx) {
+				for (int gz = minGridZ; gz <= maxGridZ; ++gz) {
+					float snowHeight = snow.getSnowHeightAt(gx, gz);
+					if (snowHeight > 0) {
+						// 눈 블록의 바운딩 박스를 생성합니다. (중심점 기준)
+						glm::vec3 blockMin = { gx - 0.5f, 0.0f, gz - 0.5f };
+						glm::vec3 blockMax = { gx + 0.5f, snowHeight, gz + 0.5f };
+
+						// AABB 충돌 검사
+						bool collisionX = characterMin.x <= blockMax.x && characterMax.x >= blockMin.x;
+						bool collisionZ = characterMin.z <= blockMax.z && characterMax.z >= blockMin.z;
+
+						if (collisionX && collisionZ) {
+							return snowHeight >= 1.0f ? 2 : 1; // 충돌 시 눈 높이에 따라 1 또는 2 반환
+						}
+					}
+				}
+			}
+
+			return 0; // 충돌 없음
+		}
+
 		bool isOutsideBackGround(const glm::vec3& nextPos, const Map& map) {
 			glm::vec3 halfSize = boundingBoxSize / 2.0f;
 			glm::vec3 characterMin = nextPos + gBoundingBox.offset - halfSize;
@@ -142,7 +177,7 @@ namespace Alex {
 			return false; // 경계 내에 있음
 		}
 
-		void update(const Map& map) {
+		void update(const Map& map, const Snow& snow) {
 			if (moveDir.x == 0.0f && moveDir.y == 0.0f) {
 				// 정지 상태
 				if (armState < 2) changeState(0, 0); // arm IDLE
@@ -154,19 +189,26 @@ namespace Alex {
 				changeState(1, 1); // leg RUN
 			}
 
+			int currentSnowCollisionType = isCollidingWithSnow(pos, snow);
+			float currentMoveSpeed = moveSpeed;
+
+			if (currentSnowCollisionType == 1) currentMoveSpeed *= 0.5f; // 눈 높이 0.5, 속도 30% 감소
+
 			// 이동 전 충돌 검사
 			glm::vec3 nextPos = pos;
 
 			// X축 이동 검사
-			nextPos.x += moveDir.x * moveSpeed;
-			if (!isCollidingWithObstacles(nextPos, map) && !isOutsideBackGround(nextPos, map)) {
+			nextPos.x += moveDir.x * currentMoveSpeed;
+			if (isCollidingWithSnow(nextPos, snow) < 2 && 
+				!isCollidingWithObstacles(nextPos, map) && !isOutsideBackGround(nextPos, map)) {
 				pos.x = nextPos.x;
 			}
 
 			// Z축 이동 검사
 			nextPos = pos; // X축 이동이 확정된 위치에서 다시 시작
-			nextPos.z += moveDir.y * moveSpeed;
-			if (!isCollidingWithObstacles(nextPos, map) && !isOutsideBackGround(nextPos, map)) {
+			nextPos.z += moveDir.y * currentMoveSpeed;
+			if (isCollidingWithSnow(nextPos, snow) < 2 && 
+				!isCollidingWithObstacles(nextPos, map) && !isOutsideBackGround(nextPos, map)) {
 				pos.z = nextPos.z;
 			}
 
@@ -176,7 +218,6 @@ namespace Alex {
 			case 1: // RUN
 				armAngle += armDir * 0.05f;
 				if (armAngle > glm::radians(60.0f) || armAngle < glm::radians(-60.0f)) armDir = -armDir;
-
 				break;
 			case 2: // CHARGE
 				break;

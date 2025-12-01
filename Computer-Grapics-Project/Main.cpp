@@ -263,11 +263,13 @@ void KeyboardUp(unsigned char key, int x, int y)
 			if (activeCharacter == STEVE) {
 				currentPlayerPos = stevePosition;
 				steve->enterThrow();
+				speed *= steve->throwingSpeed; // Steve의 투사체 속도 적용
 				shootDirection = splitScreenMode ? steveCamera.getFront() : camera.front;
 			}
 			else {
 				currentPlayerPos = alexPosition;
 				alex->enterThrow(); // THROW
+				speed *= alex->throwingSpeed; // Alex의 투사체 속도 적용
 				shootDirection = splitScreenMode ? alexCamera.getFront() : camera.front;
 			}
 
@@ -562,8 +564,8 @@ void TimerFunction(int value)
 	updateAlexPosition(deltaTime);
 
 	// Character에서 충돌검사 포함한 이동 수행
-	if (steve) steve->update(gameMap);
-	if (alex) alex->update(gameMap);
+	if (steve) steve->update(gameMap, snowSystem);
+	if (alex) alex->update(gameMap, snowSystem);
 
 	// 이동 상태 점검(정지시 IDLE)
 	checkSteveMoving();
