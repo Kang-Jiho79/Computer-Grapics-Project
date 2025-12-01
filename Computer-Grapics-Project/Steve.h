@@ -289,9 +289,6 @@ namespace Steve {
 
 			glm::mat4 Mlr = Mbase * glm::translate(glm::mat4(1.0f), gLegR.offset) * glm::translate(glm::mat4(1.0f), gLegR.pivot) * glm::rotate(glm::mat4(1.0f), -aLeg, glm::vec3(1, 0, 0)) * glm::translate(glm::mat4(1.0f), -gLegR.pivot);
 			drawVAO(gLegR, Mlr);
-
-			glm::mat4 Mbounding = Mbase * glm::translate(glm::mat4(1.0f), gBoundingBox.offset);
-			drawBoundingBox(modelLoc, Mbounding);
 		}
 	};
 }

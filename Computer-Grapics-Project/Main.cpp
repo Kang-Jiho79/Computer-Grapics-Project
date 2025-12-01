@@ -252,7 +252,7 @@ void KeyboardUp(unsigned char key, int x, int y)
 	input.releaseKey(static_cast<int>(key));
 
 	if (key == ' ') {
-		if (isCharging) {
+		if (isCharging) { // 캐릭터가 THROW 애니메이션 중일때는 차징 및 발사 불가하게 바꿔야 함.
 			float currentTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
 			float chargeTime = currentTime - chargeStartTime;
 			float chargeRatio = std::min(chargeTime / maxChargeTime, 1.0f);
@@ -261,16 +261,16 @@ void KeyboardUp(unsigned char key, int x, int y)
 			glm::vec3 currentPlayerPos;
 			glm::vec3 shootDirection;
 			if (activeCharacter == STEVE) {
-				currentPlayerPos = stevePosition;
+				currentPlayerPos = steve->pos;
 				steve->enterThrow();
 				speed *= steve->throwingSpeed; // Steve의 투사체 속도 적용
-				shootDirection = splitScreenMode ? steveCamera.getFront() : camera.front;
+				shootDirection = steveCamera.getFront();
 			}
 			else {
-				currentPlayerPos = alexPosition;
+				currentPlayerPos = alex->pos;
 				alex->enterThrow(); // THROW
 				speed *= alex->throwingSpeed; // Alex의 투사체 속도 적용
-				shootDirection = splitScreenMode ? alexCamera.getFront() : camera.front;
+				shootDirection = alexCamera.getFront();
 			}
 
 			glm::vec3 startPos = currentPlayerPos + shootDirection * 1.0f + glm::vec3(0, 1, 0) * 0.5f;
