@@ -136,6 +136,7 @@
     <ClCompile Include="Snow.cpp" />
     <ClCompile Include="Snowball.cpp" />
     <ClCompile Include="Steve_Camera.cpp" />
+    <ClCompile Include="title.cpp" />
     <ClCompile Include="Wall.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -153,6 +154,7 @@
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="Steve.h" />
     <ClInclude Include="Steve_Camera.h" />
+    <ClInclude Include="title.h" />
     <ClInclude Include="Wall.h" />
   </ItemGroup>
   <ItemGroup>

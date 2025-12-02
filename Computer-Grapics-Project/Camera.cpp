@@ -26,50 +26,6 @@ glm::mat4 Camera::getProjectionMatrix(float screenWidth, float screenHeight) con
     return glm::perspective(glm::radians(fov), aspect, 0.1f, 100.0f);
 }
 
-void Camera::processKeyboard(char key, float deltaTime)
-{
-    float velocity = movementSpeed * deltaTime;
-
-    switch (key) {
-    case 'w':
-    case 'W':
-        position += velocity * front;
-        break;
-    case 's':
-    case 'S':
-        position -= velocity * front;
-        break;
-    case 'a':
-    case 'A':
-        position -= velocity * right;
-        break;
-    case 'd':
-    case 'D':
-        position += velocity * right;
-        break;
-    case 'e':
-    case 'E':
-        position += velocity * up;
-        break;
-    case 'c':
-    case 'C':
-        position -= velocity * up;
-        break;
-    case '+':
-    case '=':
-        adjustSpeed(1.0f);
-        break;
-    case '-':
-    case '_':
-        adjustSpeed(-1.0f);
-        break;
-    case 'r':
-    case 'R':
-        reset();
-        break;
-    }
-}
-
 void Camera::processSpecialKeyboard(int key)
 {
     float rotationSpeed = 2.0f;

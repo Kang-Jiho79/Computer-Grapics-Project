@@ -22,10 +22,10 @@ public:
     float fov;
 
     // 생성자
-    Camera(glm::vec3 pos = glm::vec3(5.0f, 8.0f, 12.0f), 
+    Camera(glm::vec3 pos = glm::vec3(3.0f, 18.0f, 7.0f), 
            glm::vec3 worldUpVec = glm::vec3(0.0f, 1.0f, 0.0f),
-           float yawAngle = -90.0f, 
-           float pitchAngle = -20.0f);
+           float yawAngle = 0.0f, 
+           float pitchAngle = -85.0f);
 
     // 뷰 매트릭스 반환
     glm::mat4 getViewMatrix() const;
