@@ -9,26 +9,24 @@ namespace Steve {
 		Part gBody, gHead, gArmL, gArmR, gLegL, gLegR, gBoundingBox;
 		GLuint textureID;
 		glm::vec3 pos = { 4.5f, 1.5f, 2.0f };
-		glm::vec2 moveDir = { 0.0f, 0.0f }; // �̵� ���� ���� x, z
-		GLfloat moveSpeed = 0.085f; // �̵� �ӵ�
-		GLfloat throwingSpeed = 1.3f; // ����ü �ӵ�
+		glm::vec2 moveDir = { 0.0f, 0.0f }; 
+		GLfloat moveSpeed = 0.085f; 
+		GLfloat throwingSpeed = 1.3f; 
 		GLint armState = 0; // 0: IDLE, 1: RUN, 2: CHARGE, 3: LOWERING
 		GLfloat armAngle = 0.0f; // 라디안 사용
-		GLfloat armDir = 1.0f; // �� ȸ�� ����
+		GLfloat armDir = 1.0f; 
 		GLint legState = 0; // 0: IDLE, 1: RUN
-		GLfloat legAngle = 0.0f; // �ٸ� ȸ�� ����
-		GLfloat legDir = 1.0f; // �ٸ� ȸ�� ����
-		glm::vec3 boundingBoxSize; // �ٿ�� �ڽ� ũ�� ����
+		GLfloat legAngle = 0.0f; 
+		GLfloat legDir = 1.0f; 
+		glm::vec3 boundingBoxSize; 
 
 		Character(const char* texturePath) {
 			textureID = Init::loadTexture(texturePath);
 
-			const float gap = 0.02f; // ������ �� ���� (0.03f -> 0.02f)
-
-			// ���̸� ���� ���� (��ü ���� �� 1.5 ������)
-			glm::vec3 bodyH(0.3f, 0.35f, 0.15f);   // ����: (0.35, 0.5, 0.17) -> (0.3, 0.35, 0.15)
-			glm::vec3 headH(0.25f, 0.25f, 0.25f);  // �Ӹ�: (0.33, 0.33, 0.33) -> (0.25, 0.25, 0.25)
-			glm::vec3 limbH(0.12f, 0.35f, 0.12f);  // �ȴٸ�: (0.17, 0.5, 0.17) -> (0.12, 0.35, 0.12)
+			const float gap = 0.02f; 
+			glm::vec3 bodyH(0.3f, 0.35f, 0.15f);   
+			glm::vec3 headH(0.25f, 0.25f, 0.25f);  
+			glm::vec3 limbH(0.12f, 0.35f, 0.12f);  
 
 			UVRect headUVs[] = { {0,8,8,8}, {16,8,8,8}, {8,0,8,8}, {16,0,8,8}, {8,8,8,8}, {24,8,8,8} };
 			UVRect bodyUVs[] = { {16,20,4,12}, {28,20,4,12}, {20,16,8,4}, {28,16,8,4}, {20,20,8,12}, {32,20,8,12} };
@@ -47,12 +45,11 @@ namespace Steve {
 			glm::vec3 armROffset(+(bodyH.x + limbH.x + gap), bodyH.y - limbH.y, 0);
 			gArmL = Init::makeCubePart(limbH, armLOffset, armLUVs, armFlips, glm::vec3(0, +limbH.y, 0));
 			gArmR = Init::makeCubePart(limbH, armROffset, armRUVs, armFlips, glm::vec3(0, +limbH.y, 0));
-			glm::vec3 legLOffset(-0.15f, -(bodyH.y + limbH.y + gap), 0); // �ٸ� ���� �� ���� (0.2f -> 0.15f)
+			glm::vec3 legLOffset(-0.15f, -(bodyH.y + limbH.y + gap), 0); 
 			glm::vec3 legROffset(0.15f, -(bodyH.y + limbH.y + gap), 0);
 			gLegL = Init::makeCubePart(limbH, legLOffset, legLUVs, headBodyLegFlips, glm::vec3(0, +limbH.y, 0));
 			gLegR = Init::makeCubePart(limbH, legROffset, legRUVs, headBodyLegFlips, glm::vec3(0, +limbH.y, 0));
 
-			// Bounding Box ���� (�� �پ�� ũ�⿡ ����)
 			float top = headOffset.y + headH.y;
 			float bottom = legLOffset.y - limbH.y;
 			float front = headOffset.z + headH.z;
@@ -93,7 +90,6 @@ namespace Steve {
 			armState = 3; // LOWERING
 		}
 
-		// AABB �浹 �˻� �Լ�
 		bool checkCollision(const glm::vec3& characterMin, const glm::vec3& characterMax, const Block& block) {
 			float blockSize = block.getSize();
 			glm::vec3 blockMin = { block.getX() - blockSize / 2.0f, block.getY() - blockSize / 2.0f, block.getZ() - blockSize / 2.0f };
@@ -106,13 +102,11 @@ namespace Steve {
 			return collisionX && collisionY && collisionZ;
 		}
 
-		// ��ֹ����� �浹 �˻�
 		bool isCollidingWithObstacles(const glm::vec3& nextPos, const Map& map) {
 			glm::vec3 halfSize = boundingBoxSize / 2.0f;
 			glm::vec3 characterMin = nextPos + gBoundingBox.offset - halfSize;
 			glm::vec3 characterMax = nextPos + gBoundingBox.offset + halfSize;
 
-			// ���� �浹 �˻�
 			const Wall& wall = map.getWall();
 			for (size_t i = 0; i < wall.getBlockCount(); ++i) {
 				if (checkCollision(characterMin, characterMax, wall.getBlock(i))) {
@@ -120,31 +114,27 @@ namespace Steve {
 				}
 			}
 
-			return false; // �浹 ����
+			return false; 
 		}
 
 		int isCollidingWithSnow(const glm::vec3& checkPos, const Snow& snow) {
-			// �� ���ϰ��� �浹 �˻�, �浹�� ���� �� 0, �� ������ ���̰� 0.5f�� 1, 1.0f�� 2�� ��ȯ.
 			glm::vec3 halfSize = boundingBoxSize / 2.0f;
 			glm::vec3 characterMin = checkPos + gBoundingBox.offset - halfSize;
 			glm::vec3 characterMax = checkPos + gBoundingBox.offset + halfSize;
 
-			// ĳ������ �ٿ�� �ڽ��� �����ϴ� �׸��� ������ ����մϴ�.
 			int minGridX = static_cast<int>(floor(characterMin.x));
 			int maxGridX = static_cast<int>(ceil(characterMax.x));
 			int minGridZ = static_cast<int>(floor(characterMin.z));
 			int maxGridZ = static_cast<int>(ceil(characterMax.z));
 
-			// ��� ���� �׸��� ���� ��ȸ�ϸ� �浹�� �˻��մϴ�.
 			for (int gx = minGridX; gx <= maxGridX; ++gx) {
 				for (int gz = minGridZ; gz <= maxGridZ; ++gz) {
 					float snowHeight = snow.getSnowHeightAt(gx, gz);
 					if (snowHeight > 0) {
-						// �� ������ �ٿ�� �ڽ��� �����մϴ�. (�߽��� ����)
 						glm::vec3 blockMin = { gx - 0.5f, 0.0f, gz - 0.5f };
 						glm::vec3 blockMax = { gx + 0.5f, snowHeight, gz + 0.5f };
 
-						// AABB �浹 �˻�
+						// AABB 
 						bool collisionX = characterMin.x <= blockMax.x && characterMax.x >= blockMin.x;
 						bool collisionZ = characterMin.z <= blockMax.z && characterMax.z >= blockMin.z;
 
@@ -155,7 +145,7 @@ namespace Steve {
 					}
 				}
 			}
-			return 0; // �浹 ����
+			return 0; 
 		}
 
 		bool isOutsideFrontGround(const glm::vec3& nextPos, const Map& map) {
@@ -174,10 +164,10 @@ namespace Steve {
 			float maxZ = lastBlock.getZ() + blockSize / 2.0f;
 
 			if (characterMin.x < minX || characterMax.x > maxX || characterMin.z < minZ || characterMax.z > maxZ) {
-				return true; // ��� ���
+				return true;
 			}
 
-			return false; // ��� ���� ����
+			return false; 
 		}
 
 		void update(const Map& map, const Snow& snow) {

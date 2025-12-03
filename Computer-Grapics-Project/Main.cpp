@@ -27,6 +27,7 @@
 #include "Snow.h"       // Snow 헤더 추가
 #include "KeyManager.h"
 #include "title.h"       // 타이틀 헤더 추가
+#include "finish.h" // 추가
 
 #define WinX 1280
 #define WinY 720
@@ -60,6 +61,8 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 // 게임 상태 관리
 static GameState currentGameState = GameState::TITLE_SCREEN;
 static TitleScreen titleScreen;
+static FinishScreen finishScreen; // 추가
+static Winner winner = Winner::NONE; // 승자 상태 저장
 
 // 전역 객체들
 static Camera camera;  // 기본 3인칭 카메라 객체
@@ -440,6 +443,8 @@ void initializeGame() {
 	std::cout << "O: Alex 눈덩이 발사" << std::endl;
 	std::cout << "X: 모든 눈 제거" << std::endl;
 	std::cout << "ESC: 종료" << std::endl;
+
+	finishScreen.initialize(); // 쿼드 버퍼 준비 (텍스처는 승자 결정 시 로드)
 }
 
 void Keyboard(unsigned char key, int x, int y)
@@ -452,6 +457,29 @@ void Keyboard(unsigned char key, int x, int y)
 			initializeGame();
 		}
 		glutPostRedisplay();
+		return;
+	}
+
+	if (currentGameState == GameState::FINISH_SCREEN) {
+		if (key == 'q' || key == 'Q' || key == 27) {
+			exit(0);
+		} else if (key == 'r' || key == 'R') {
+			// 전체 초기화 후 타이틀로 복귀
+			// 자원 정리
+			if (steve) { delete steve; steve = nullptr; }
+			if (alex) { delete alex; alex = nullptr; }
+			snowballs.clear();
+			snowSystem.clearAll();
+
+			// 상태 초기화
+			winner = Winner::NONE;
+			currentGameState = GameState::TITLE_SCREEN;
+
+			// 타이틀 재초기화 (버퍼/텍스처가 유지되므로 호출만)
+			titleScreen.initialize();
+
+			glutPostRedisplay();
+		}
 		return;
 	}
 
@@ -610,42 +638,24 @@ void checkAllSnowballCollisions()
 
 		// Steve와의 충돌 검사
 		if (steve && checkSnowballCharacterCollision(snowball, steve->pos, steve->boundingBoxSize)) {
-			std::cout << "\n=== 게임 종료 ===" << std::endl;
-			std::cout << "Steve가 눈덩이에 맞았습니다!" << std::endl;
-			std::cout << "눈덩이 위치: (" << snowball.getPosition().x << ", " << snowball.getPosition().y << ", " << snowball.getPosition().z << ")" << std::endl;
-			std::cout << "Steve 위치: (" << steve->pos.x << ", " << steve->pos.y << ", " << steve->pos.z << ")" << std::endl;
+			std::cout << "\n=== 경기 종료 ===\nSteve가 눈덩이에 맞았습니다!" << std::endl;
 
-			// 정리 작업
-			if (steve) {
-				delete steve;
-				steve = nullptr;
-			}
-			if (alex) {
-				delete alex;
-				alex = nullptr;
-			}
+			winner = Winner::ALEX;
+			finishScreen.setWinner(winner);
+			currentGameState = GameState::FINISH_SCREEN;
 
-			exit(0);
+			// 플레이어 객체는 화면 전환 위해 바로 삭제하지 않고, 입력/업데이트가 중지되도록 상태만 전환
+			return;
 		}
 
 		// Alex와의 충돌 검사
 		if (alex && checkSnowballCharacterCollision(snowball, alex->pos, alex->boundingBoxSize)) {
-			std::cout << "\n=== 게임 종료 ===" << std::endl;
-			std::cout << "Alex가 눈덩이에 맞았습니다!" << std::endl;
-			std::cout << "눈덩이 위치: (" << snowball.getPosition().x << ", " << snowball.getPosition().y << ", " << snowball.getPosition().z << ")" << std::endl;
-			std::cout << "Alex 위치: (" << alex->pos.x << ", " << alex->pos.y << ", " << alex->pos.z << ")" << std::endl;
+			std::cout << "\n=== 경기 종료 ===\nAlex가 눈덩이에 맞았습니다!" << std::endl;
 
-			// 정리 작업
-			if (steve) {
-				delete steve;
-				steve = nullptr;
-			}
-			if (alex) {
-				delete alex;
-				alex = nullptr;
-			}
-
-			exit(0);
+			winner = Winner::STEVE;
+			finishScreen.setWinner(winner);
+			currentGameState = GameState::FINISH_SCREEN;
+			return;
 		}
 	}
 }
@@ -778,14 +788,18 @@ void make_shaderProgram()
 GLvoid drawScene()
 {
 	if (shaderProgramID == 0) return;
-
 	glUseProgram(shaderProgramID);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// 타이틀 화면 렌더링
 	if (currentGameState == GameState::TITLE_SCREEN) {
 		titleScreen.render(shaderProgramID);
+		glutSwapBuffers();
+		return;
+	}
+
+	if (currentGameState == GameState::FINISH_SCREEN) {
+		finishScreen.render(shaderProgramID);
 		glutSwapBuffers();
 		return;
 	}

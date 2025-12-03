@@ -1,5 +1,9 @@
 #include "title.h"
 #include <vector>
+#include <iostream>
+
+// PNG 로딩을 위한 stb_image
+#include "stb_image.h"
 
 TitleScreen::TitleScreen() : vao(0), vbo(0), isInitialized(false) {}
 
@@ -11,13 +15,14 @@ void TitleScreen::initialize() {
     if (isInitialized) return;
 
     initializeBuffers();
+    loadTitleTexture(); // Title.png 텍스처 로드
     isInitialized = true;
 
     std::cout << "타이틀 화면 초기화 완료" << std::endl;
 }
 
 void TitleScreen::initializeBuffers() {
-    // 전체 화면을 덮는 쿼드 생성
+    // 전체 화면을 덮는 쿼드 생성 (NDC)
     std::vector<float> vertices = {
         // 위치          // 텍스처 좌표
         -1.0f,  1.0f,   0.0f, 1.0f,
@@ -49,15 +54,48 @@ void TitleScreen::initializeBuffers() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void TitleScreen::loadTitleTexture() {
+    if (textureLoaded) return;
+
+    int width = 0, height = 0, channels = 0;
+    stbi_set_flip_vertically_on_load(true);
+    unsigned char* data = stbi_load("Title.png", &width, &height, &channels, 0);
+    if (!data) {
+        std::cerr << "Title.png 로드 실패, 단색 배경으로 대체됩니다." << std::endl;
+        textureLoaded = false;
+        return;
+    }
+
+    GLenum format = GL_RGB;
+    if (channels == 1) format = GL_RED;
+    else if (channels == 3) format = GL_RGB;
+    else if (channels == 4) format = GL_RGBA;
+
+    glGenTextures(1, &titleTextureId);
+    glBindTexture(GL_TEXTURE_2D, titleTextureId);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // 텍스처 파라미터
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // 전체 화면 이미지에 적합
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    stbi_image_free(data);
+
+    textureLoaded = true;
+    std::cout << "Title.png 텍스처 로드 성공: " << width << "x" << height << " (" << channels << " channels)" << std::endl;
+}
+
 void TitleScreen::render(GLuint shaderProgram) const {
     if (!isInitialized) return;
 
-    // 깊이 테스트 비활성화 (2D 렌더링을 위해)
     glDisable(GL_DEPTH_TEST);
-
     glUseProgram(shaderProgram);
 
-    // 단위 행렬들 설정
+    // 단위 행렬들 설정 (NDC 사용)
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 view = glm::mat4(1.0f);
     glm::mat4 projection = glm::mat4(1.0f);
@@ -68,33 +106,46 @@ void TitleScreen::render(GLuint shaderProgram) const {
     GLint useTextureLoc = glGetUniformLocation(shaderProgram, "useTexture");
     GLint lightingEnabledLoc = glGetUniformLocation(shaderProgram, "lightingEnabled");
     GLint vColorLoc = glGetUniformLocation(shaderProgram, "vColor");
+    GLint textureLoc = glGetUniformLocation(shaderProgram, "texture1");
 
     if (modelLoc != -1) glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
     if (viewLoc != -1) glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
     if (projLoc != -1) glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projection[0][0]);
-    if (useTextureLoc != -1) glUniform1i(useTextureLoc, 0);
+
     if (lightingEnabledLoc != -1) glUniform1i(lightingEnabledLoc, 0);
 
-    // 배경색 (어두운 파란색)
-    if (vColorLoc != -1) glUniform3f(vColorLoc, 0.1f, 0.1f, 0.3f);
+    if (textureLoaded && textureLoc != -1 && useTextureLoc != -1) {
+        // 텍스처 사용
+        glUniform1i(useTextureLoc, 1);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, titleTextureId);
+        glUniform1i(textureLoc, 0);
+    }
+    else {
+        // 텍스처 없으면 단색 배경
+        if (useTextureLoc != -1) glUniform1i(useTextureLoc, 0);
+        if (vColorLoc != -1) glUniform3f(vColorLoc, 0.1f, 0.1f, 0.3f);
+    }
 
     glBindVertexArray(vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 
-    // 텍스트 렌더링 (간단한 버전)
+    // 텍스처 바인딩 해제
+    if (textureLoaded) {
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    // 간단한 텍스트 안내 (콘솔)
     renderText("MINECRAFT SNOWBALL FIGHT", 0.0f, 0.3f, 2.0f);
     renderText("1 - First Person Mode", 0.0f, 0.0f, 1.0f);
     renderText("3 - Third Person Mode", 0.0f, -0.2f, 1.0f);
     renderText("ESC - Exit", 0.0f, -0.4f, 1.0f);
 
-    // 깊이 테스트 다시 활성화
     glEnable(GL_DEPTH_TEST);
 }
 
 void TitleScreen::renderText(const std::string& text, float x, float y, float scale) const {
-    // 간단한 콘솔 출력으로 대체 (실제 텍스트 렌더링은 복잡하므로)
-    // 나중에 텍스처 기반 텍스트 렌더링으로 교체 가능
     static bool textDisplayed = false;
     if (!textDisplayed) {
         std::cout << "\n=== " << text << " ===" << std::endl;
@@ -131,6 +182,11 @@ void TitleScreen::cleanup() {
             glDeleteBuffers(1, &vbo);
             vbo = 0;
         }
+        if (titleTextureId != 0) {
+            glDeleteTextures(1, &titleTextureId);
+            titleTextureId = 0;
+        }
         isInitialized = false;
+        textureLoaded = false;
     }
 }

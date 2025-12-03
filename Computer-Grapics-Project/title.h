@@ -1,33 +1,35 @@
 #pragma once
 #include <gl/glew.h>
-#include <gl/freeglut.h>
-#include <gl/freeglut_ext.h>
 #include <gl/glm/glm.hpp>
-#include <gl/glm/gtc/matrix_transform.hpp>
-#include <iostream>
+#include <string>
 
 enum class GameState {
     TITLE_SCREEN,
     FIRST_PERSON_MODE,
-    THIRD_PERSON_MODE
+    THIRD_PERSON_MODE,
+    FINISH_SCREEN
 };
 
 class TitleScreen {
-private:
-    GLuint vao, vbo;
-    bool isInitialized;
-
-    void initializeBuffers();
-    void renderText(const std::string& text, float x, float y, float scale = 1.0f) const;
-
 public:
     TitleScreen();
     ~TitleScreen();
 
     void initialize();
     void render(GLuint shaderProgram) const;
+    GameState handleKeyInput(unsigned char key) const;
     void cleanup();
 
-    // 키 입력 처리 - 게임 상태 반환
-    GameState handleKeyInput(unsigned char key) const;
+private:
+    void initializeBuffers();
+    void renderText(const std::string& text, float x, float y, float scale) const;
+    void loadTitleTexture();
+
+    GLuint vao;
+    GLuint vbo;
+    bool isInitialized;
+
+    // 추가: 타이틀 배경 텍스처
+    GLuint titleTextureId = 0;
+    bool textureLoaded = false;
 };

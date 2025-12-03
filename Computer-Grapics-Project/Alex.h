@@ -10,27 +10,25 @@ namespace Alex {
 		Part gBody, gHead, gArmL, gArmR, gLegL, gLegR, gBoundingBox;
 		GLuint textureID;
 		glm::vec3 pos = { 4.5f, 1.5f, 12.0f };
-		glm::vec2 moveDir = { 0.0f, 0.0f }; // ??? ???? ???? x, z
-		GLfloat moveSpeed = 0.1f; // ??? ???
-		GLfloat throwingSpeed = 1.0f; // ????? ???
+		glm::vec2 moveDir = { 0.0f, 0.0f }; 
+		GLfloat moveSpeed = 0.1f; 
+		GLfloat throwingSpeed = 1.0f; 
 		GLint armState = 0; // 0: IDLE, 1: RUN, 2: CHARGE, 3: LOWERING
 		GLfloat armAngle = 0.0f; // ¶óµð¾È »ç¿ë
-		GLfloat armDir = 1.0f; // ?? ??? ????
+		GLfloat armDir = 1.0f; 
 		GLint legState = 0; // 0: IDLE, 1: RUN
-		GLfloat legAngle = 0.0f; // ??? ??? ????
-		GLfloat legDir = 1.0f; // ??? ??? ????
-		glm::vec3 boundingBoxSize; // ???? ??? ??? ????
+		GLfloat legAngle = 0.0f; 
+		GLfloat legDir = 1.0f; 
+		glm::vec3 boundingBoxSize; 
 
 		Character(const char* texturePath) {
 			textureID = Init::loadTexture(texturePath);
 
-			const float gap = 0.02f; // ?????? ?? ???? (0.03f -> 0.02f)
-
-			// ????? ???? ???? (??? ???? ?? 1.5 ??????)
-			glm::vec3 bodyH(0.3f, 0.35f, 0.15f);        // ????: (0.35, 0.5, 0.17) -> (0.3, 0.35, 0.15)
-			glm::vec3 headH(0.25f, 0.25f, 0.25f);       // ???: (0.33, 0.33, 0.33) -> (0.25, 0.25, 0.25)
-			glm::vec3 armH(0.09f, 0.35f, 0.12f);        // Alex?? ???? ??: (0.125, 0.5, 0.17) -> (0.09, 0.35, 0.12)
-			glm::vec3 legH(0.12f, 0.35f, 0.12f);        // ???: (0.17, 0.5, 0.17) -> (0.12, 0.35, 0.12)
+			const float gap = 0.02f; 
+			glm::vec3 bodyH(0.3f, 0.35f, 0.15f);        
+			glm::vec3 headH(0.25f, 0.25f, 0.25f);       
+			glm::vec3 armH(0.09f, 0.35f, 0.12f);       
+			glm::vec3 legH(0.12f, 0.35f, 0.12f);        
 
 			UVRect headUVs[] = { {0,8,8,8}, {16,8,8,8}, {8,0,8,8}, {16,0,8,8}, {8,8,8,8}, {24,8,8,8} };
 			UVRect bodyUVs[] = { {16,20,4,12}, {28,20,4,12}, {20,16,8,4}, {28,16,8,4}, {20,20,8,12}, {32,20,8,12} };
@@ -49,12 +47,12 @@ namespace Alex {
 			glm::vec3 armROffset(+(bodyH.x + armH.x + gap), bodyH.y - armH.y, 0);
 			gArmL = Init::makeCubePart(armH, armLOffset, armLUVs, armFlips, glm::vec3(0, +armH.y, 0));
 			gArmR = Init::makeCubePart(armH, armROffset, armRUVs, armFlips, glm::vec3(0, +armH.y, 0));
-			glm::vec3 legLOffset(-0.12f, -(bodyH.y + legH.y + gap), 0); // ??? ???? ?? ???? (0.17f -> 0.12f)
+			glm::vec3 legLOffset(-0.12f, -(bodyH.y + legH.y + gap), 0); 
 			glm::vec3 legROffset(0.12f, -(bodyH.y + legH.y + gap), 0);
 			gLegL = Init::makeCubePart(legH, legLOffset, legLUVs, headBodyLegFlips, glm::vec3(0, +legH.y, 0));
 			gLegR = Init::makeCubePart(legH, legROffset, legRUVs, headBodyLegFlips, glm::vec3(0, +legH.y, 0));
 
-			// Bounding Box ???? (?? ???? ??? ????)
+			// Bounding Box
 			float top = headOffset.y + headH.y;
 			float bottom = legLOffset.y - legH.y;
 			float front = headOffset.z + headH.z;
@@ -93,7 +91,6 @@ namespace Alex {
 		}
 
 
-		// AABB ?úô ??? ???
 		bool checkCollision(const glm::vec3& characterMin, const glm::vec3& characterMax, const Block& block) {
 			float blockSize = block.getSize();
 			glm::vec3 blockMin = { block.getX() - blockSize / 2.0f, block.getY() - blockSize / 2.0f, block.getZ() - blockSize / 2.0f };
@@ -106,13 +103,11 @@ namespace Alex {
 			return collisionX && collisionY && collisionZ;
 		}
 
-		// ???????? ?úô ???
 		bool isCollidingWithObstacles(const glm::vec3& nextPos, const Map& map) {
 			glm::vec3 halfSize = boundingBoxSize / 2.0f;
 			glm::vec3 characterMin = nextPos + gBoundingBox.offset - halfSize;
 			glm::vec3 characterMax = nextPos + gBoundingBox.offset + halfSize;
 
-			// ???? ?úô ???
 			const Wall& wall = map.getWall();
 			for (size_t i = 0; i < wall.getBlockCount(); ++i) {
 				if (checkCollision(characterMin, characterMax, wall.getBlock(i))) {
@@ -120,7 +115,7 @@ namespace Alex {
 				}
 			}
 
-			return false; // ?úô ????
+			return false; 
 		}
 
 		int isCollidingWithSnow(const glm::vec3& nextPos, const Snow& snow) {
@@ -128,33 +123,29 @@ namespace Alex {
 			glm::vec3 characterMin = nextPos + gBoundingBox.offset - halfSize;
 			glm::vec3 characterMax = nextPos + gBoundingBox.offset + halfSize;
 
-			// ©¦?????? ???? ????? ??????? ????? ?????? ???????.
 			int minGridX = static_cast<int>(floor(characterMin.x));
 			int maxGridX = static_cast<int>(ceil(characterMax.x));
 			int minGridZ = static_cast<int>(floor(characterMin.z));
 			int maxGridZ = static_cast<int>(ceil(characterMax.z));
 
-			// ??? ???? ????? ???? ?????? ?úô?? ???????.
 			for (int gx = minGridX; gx <= maxGridX; ++gx) {
 				for (int gz = minGridZ; gz <= maxGridZ; ++gz) {
 					float snowHeight = snow.getSnowHeightAt(gx, gz);
 					if (snowHeight > 0) {
-						// ?? ?????? ???? ????? ????????. (????? ????)
 						glm::vec3 blockMin = { gx - 0.5f, 0.0f, gz - 0.5f };
 						glm::vec3 blockMax = { gx + 0.5f, snowHeight, gz + 0.5f };
 
-						// AABB ?úô ???
 						bool collisionX = characterMin.x <= blockMax.x && characterMax.x >= blockMin.x;
 						bool collisionZ = characterMin.z <= blockMax.z && characterMax.z >= blockMin.z;
 
 						if (collisionX && collisionZ) {
-							return snowHeight >= 1.0f ? 2 : 1; // ?úô ?? ?? ????? ???? 1 ??? 2 ???
+							return snowHeight >= 1.0f ? 2 : 1; 
 						}
 					}
 				}
 			}
 
-			return 0; // ?úô ????
+			return 0; 
 		}
 
 		bool isOutsideBackGround(const glm::vec3& nextPos, const Map& map) {
@@ -173,10 +164,10 @@ namespace Alex {
 			float maxZ = lastBlock.getZ() + blockSize / 2.0f;
 
 			if (characterMin.x < minX || characterMax.x > maxX || characterMin.z < minZ || characterMax.z > maxZ) {
-				return true; // ??? ????
+				return true; 
 			}
 
-			return false; // ??? ???? ????
+			return false; 
 		}
 
 		void update(const Map& map, const Snow& snow) {
