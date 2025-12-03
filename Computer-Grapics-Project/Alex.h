@@ -3,33 +3,34 @@
 #include "Map.h"
 #include "Snow.h"
 
+
 namespace Alex {
 	class Character {
 	public:
 		Part gBody, gHead, gArmL, gArmR, gLegL, gLegR, gBoundingBox;
 		GLuint textureID;
 		glm::vec3 pos = { 4.5f, 1.5f, 12.0f };
-		glm::vec2 moveDir = { 0.0f, 0.0f }; // 이동 방향 벡터 x, z
-		GLfloat moveSpeed = 0.1f; // 이동 속도
-		GLfloat throwingSpeed = 1.0f; // 투사체 속도
+		glm::vec2 moveDir = { 0.0f, 0.0f }; // ??? ???? ???? x, z
+		GLfloat moveSpeed = 0.1f; // ??? ???
+		GLfloat throwingSpeed = 1.0f; // ????? ???
 		GLint armState = 0; // 0: IDLE, 1: RUN, 2: CHARGE 3: THROW
-		GLfloat armAngle = 0.0f; // 팔 회전 각도
-		GLfloat armDir = 1.0f; // 팔 회전 방향
+		GLfloat armAngle = 0.0f; // ?? ??? ????
+		GLfloat armDir = 1.0f; // ?? ??? ????
 		GLint legState = 0; // 0: IDLE, 1: RUN
-		GLfloat legAngle = 0.0f; // 다리 회전 각도
-		GLfloat legDir = 1.0f; // 다리 회전 방향
-		glm::vec3 boundingBoxSize; // 바운딩 박스 크기 저장
+		GLfloat legAngle = 0.0f; // ??? ??? ????
+		GLfloat legDir = 1.0f; // ??? ??? ????
+		glm::vec3 boundingBoxSize; // ???? ??? ??? ????
 
 		Character(const char* texturePath) {
 			textureID = Init::loadTexture(texturePath);
 
-			const float gap = 0.02f; // 간격을 더 줄임 (0.03f -> 0.02f)
-			
-			// 높이를 더욱 줄임 (전체 높이 약 1.5 정도로)
-			glm::vec3 bodyH(0.3f, 0.35f, 0.15f);        // 몸통: (0.35, 0.5, 0.17) -> (0.3, 0.35, 0.15)
-			glm::vec3 headH(0.25f, 0.25f, 0.25f);       // 머리: (0.33, 0.33, 0.33) -> (0.25, 0.25, 0.25)
-			glm::vec3 armH(0.09f, 0.35f, 0.12f);        // Alex의 얇은 팔: (0.125, 0.5, 0.17) -> (0.09, 0.35, 0.12)
-			glm::vec3 legH(0.12f, 0.35f, 0.12f);        // 다리: (0.17, 0.5, 0.17) -> (0.12, 0.35, 0.12)
+			const float gap = 0.02f; // ?????? ?? ???? (0.03f -> 0.02f)
+
+			// ????? ???? ???? (??? ???? ?? 1.5 ??????)
+			glm::vec3 bodyH(0.3f, 0.35f, 0.15f);        // ????: (0.35, 0.5, 0.17) -> (0.3, 0.35, 0.15)
+			glm::vec3 headH(0.25f, 0.25f, 0.25f);       // ???: (0.33, 0.33, 0.33) -> (0.25, 0.25, 0.25)
+			glm::vec3 armH(0.09f, 0.35f, 0.12f);        // Alex?? ???? ??: (0.125, 0.5, 0.17) -> (0.09, 0.35, 0.12)
+			glm::vec3 legH(0.12f, 0.35f, 0.12f);        // ???: (0.17, 0.5, 0.17) -> (0.12, 0.35, 0.12)
 
 			UVRect headUVs[] = { {0,8,8,8}, {16,8,8,8}, {8,0,8,8}, {16,0,8,8}, {8,8,8,8}, {24,8,8,8} };
 			UVRect bodyUVs[] = { {16,20,4,12}, {28,20,4,12}, {20,16,8,4}, {28,16,8,4}, {20,20,8,12}, {32,20,8,12} };
@@ -48,12 +49,12 @@ namespace Alex {
 			glm::vec3 armROffset(+(bodyH.x + armH.x + gap), bodyH.y - armH.y, 0);
 			gArmL = Init::makeCubePart(armH, armLOffset, armLUVs, armFlips, glm::vec3(0, +armH.y, 0));
 			gArmR = Init::makeCubePart(armH, armROffset, armRUVs, armFlips, glm::vec3(0, +armH.y, 0));
-			glm::vec3 legLOffset(-0.12f, -(bodyH.y + legH.y + gap), 0); // 다리 간격 더 줄임 (0.17f -> 0.12f)
+			glm::vec3 legLOffset(-0.12f, -(bodyH.y + legH.y + gap), 0); // ??? ???? ?? ???? (0.17f -> 0.12f)
 			glm::vec3 legROffset(0.12f, -(bodyH.y + legH.y + gap), 0);
 			gLegL = Init::makeCubePart(legH, legLOffset, legLUVs, headBodyLegFlips, glm::vec3(0, +legH.y, 0));
 			gLegR = Init::makeCubePart(legH, legROffset, legRUVs, headBodyLegFlips, glm::vec3(0, +legH.y, 0));
 
-			// Bounding Box 재계산 (더 줄어든 크기에 맞춰)
+			// Bounding Box ???? (?? ???? ??? ????)
 			float top = headOffset.y + headH.y;
 			float bottom = legLOffset.y - legH.y;
 			float front = headOffset.z + headH.z;
@@ -91,7 +92,7 @@ namespace Alex {
 			armState = 3; // THROW
 		}
 
-		// AABB 충돌 검사 함수
+		// AABB ?浹 ??? ???
 		bool checkCollision(const glm::vec3& characterMin, const glm::vec3& characterMax, const Block& block) {
 			float blockSize = block.getSize();
 			glm::vec3 blockMin = { block.getX() - blockSize / 2.0f, block.getY() - blockSize / 2.0f, block.getZ() - blockSize / 2.0f };
@@ -104,13 +105,13 @@ namespace Alex {
 			return collisionX && collisionY && collisionZ;
 		}
 
-		// 장애물과의 충돌 검사
+		// ???????? ?浹 ???
 		bool isCollidingWithObstacles(const glm::vec3& nextPos, const Map& map) {
 			glm::vec3 halfSize = boundingBoxSize / 2.0f;
 			glm::vec3 characterMin = nextPos + gBoundingBox.offset - halfSize;
 			glm::vec3 characterMax = nextPos + gBoundingBox.offset + halfSize;
 
-			// 벽과 충돌 검사
+			// ???? ?浹 ???
 			const Wall& wall = map.getWall();
 			for (size_t i = 0; i < wall.getBlockCount(); ++i) {
 				if (checkCollision(characterMin, characterMax, wall.getBlock(i))) {
@@ -118,7 +119,7 @@ namespace Alex {
 				}
 			}
 
-			return false; // 충돌 없음
+			return false; // ?浹 ????
 		}
 
 		int isCollidingWithSnow(const glm::vec3& nextPos, const Snow& snow) {
@@ -126,33 +127,33 @@ namespace Alex {
 			glm::vec3 characterMin = nextPos + gBoundingBox.offset - halfSize;
 			glm::vec3 characterMax = nextPos + gBoundingBox.offset + halfSize;
 
-			// 캐릭터의 바운딩 박스가 차지하는 그리드 범위를 계산합니다.
+			// ĳ?????? ???? ????? ??????? ????? ?????? ???????.
 			int minGridX = static_cast<int>(floor(characterMin.x));
 			int maxGridX = static_cast<int>(ceil(characterMax.x));
 			int minGridZ = static_cast<int>(floor(characterMin.z));
 			int maxGridZ = static_cast<int>(ceil(characterMax.z));
 
-			// 모든 관련 그리드 셀을 순회하며 충돌을 검사합니다.
+			// ??? ???? ????? ???? ?????? ?浹?? ???????.
 			for (int gx = minGridX; gx <= maxGridX; ++gx) {
 				for (int gz = minGridZ; gz <= maxGridZ; ++gz) {
 					float snowHeight = snow.getSnowHeightAt(gx, gz);
 					if (snowHeight > 0) {
-						// 눈 블록의 바운딩 박스를 생성합니다. (중심점 기준)
+						// ?? ?????? ???? ????? ????????. (????? ????)
 						glm::vec3 blockMin = { gx - 0.5f, 0.0f, gz - 0.5f };
 						glm::vec3 blockMax = { gx + 0.5f, snowHeight, gz + 0.5f };
 
-						// AABB 충돌 검사
+						// AABB ?浹 ???
 						bool collisionX = characterMin.x <= blockMax.x && characterMax.x >= blockMin.x;
 						bool collisionZ = characterMin.z <= blockMax.z && characterMax.z >= blockMin.z;
 
 						if (collisionX && collisionZ) {
-							return snowHeight >= 1.0f ? 2 : 1; // 충돌 시 눈 높이에 따라 1 또는 2 반환
+							return snowHeight >= 1.0f ? 2 : 1; // ?浹 ?? ?? ????? ???? 1 ??? 2 ???
 						}
 					}
 				}
 			}
 
-			return 0; // 충돌 없음
+			return 0; // ?浹 ????
 		}
 
 		bool isOutsideBackGround(const glm::vec3& nextPos, const Map& map) {
@@ -171,20 +172,20 @@ namespace Alex {
 			float maxZ = lastBlock.getZ() + blockSize / 2.0f;
 
 			if (characterMin.x < minX || characterMax.x > maxX || characterMin.z < minZ || characterMax.z > maxZ) {
-				return true; // 경계 벗어남
+				return true; // ??? ????
 			}
 
-			return false; // 경계 내에 있음
+			return false; // ??? ???? ????
 		}
 
 		void update(const Map& map, const Snow& snow) {
 			if (moveDir.x == 0.0f && moveDir.y == 0.0f) {
-				// 정지 상태
+				// ???? ????
 				if (armState < 2) changeState(0, 0); // arm IDLE
 				changeState(1, 0); // leg IDLE
 			}
 			else {
-				// 이동 상태
+				// ??? ????
 				if (armState < 2) changeState(0, 1); // arm RUN
 				changeState(1, 1); // leg RUN
 			}
@@ -192,22 +193,22 @@ namespace Alex {
 			int currentSnowCollisionType = isCollidingWithSnow(pos, snow);
 			float currentMoveSpeed = moveSpeed;
 
-			if (currentSnowCollisionType == 1) currentMoveSpeed *= 0.5f; // 눈 높이 0.5, 속도 30% 감소
+			if (currentSnowCollisionType == 1) currentMoveSpeed *= 0.5f; // ?? ???? 0.5, ??? 30% ????
 
-			// 이동 전 충돌 검사
+			// ??? ?? ?浹 ???
 			glm::vec3 nextPos = pos;
 
-			// X축 이동 검사
+			// X?? ??? ???
 			nextPos.x += moveDir.x * currentMoveSpeed;
-			if (isCollidingWithSnow(nextPos, snow) < 2 && 
+			if (isCollidingWithSnow(nextPos, snow) < 2 &&
 				!isCollidingWithObstacles(nextPos, map) && !isOutsideBackGround(nextPos, map)) {
 				pos.x = nextPos.x;
 			}
 
-			// Z축 이동 검사
-			nextPos = pos; // X축 이동이 확정된 위치에서 다시 시작
+			// Z?? ??? ???
+			nextPos = pos; // X?? ????? ????? ??????? ??? ????
 			nextPos.z += moveDir.y * currentMoveSpeed;
-			if (isCollidingWithSnow(nextPos, snow) < 2 && 
+			if (isCollidingWithSnow(nextPos, snow) < 2 &&
 				!isCollidingWithObstacles(nextPos, map) && !isOutsideBackGround(nextPos, map)) {
 				pos.z = nextPos.z;
 			}
@@ -220,6 +221,8 @@ namespace Alex {
 				if (armAngle > glm::radians(60.0f) || armAngle < glm::radians(-60.0f)) armDir = -armDir;
 				break;
 			case 2: // CHARGE
+
+
 				break;
 			case 3: // THROW
 				armAngle += 0.08f;
@@ -262,15 +265,16 @@ namespace Alex {
 				};
 
 			glm::mat4 Mbase = glm::translate(glm::mat4(1.0f), pos);
-			Mbase = glm::rotate(Mbase, glm::radians(180.0f), glm::vec3(0, 1, 0)); // Alex가 Z-방향을 바라보도록 회전)
+			Mbase = glm::rotate(Mbase, glm::radians(180.0f), glm::vec3(0, 1, 0)); // Alex?? Z-?????? ??????? ???)
 
-			float alArm = armAngle; // 왼쪽에 보이는 팔 각도
+			float alArm = armAngle; // ????? ????? ?? ????
+
 
 			float arArm = -alArm;
-			if (armState >= 2) arArm = 0.0f; // 던지는 동작에서는 오른팔이 앞으로 쭉 뻗음
+			if (armState >= 2) arArm = 0.0f; // ?????? ????????? ???????? ?????? ?? ????
 
 			float aLeg = std::sin(legAngle) * glm::radians(60.0f);
-			aLeg *= -1.0f; // 다리는 팔과 반대 방향으로 움직임
+			aLeg *= -1.0f; // ????? ??? ??? ???????? ??????
 
 			glm::mat4 Mbody = Mbase * glm::translate(glm::mat4(1.0f), gBody.offset);
 			drawVAO(gBody, Mbody);
@@ -289,6 +293,9 @@ namespace Alex {
 
 			glm::mat4 Mlr = Mbase * glm::translate(glm::mat4(1.0f), gLegR.offset) * glm::translate(glm::mat4(1.0f), gLegR.pivot) * glm::rotate(glm::mat4(1.0f), -aLeg, glm::vec3(1, 0, 0)) * glm::translate(glm::mat4(1.0f), -gLegR.pivot);
 			drawVAO(gLegR, Mlr);
+
+
+
 		}
 	};
 }

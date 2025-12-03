@@ -103,6 +103,9 @@ static float steveChargeStartTime = 0.0f;
 static bool alexCharging = false;
 static float alexChargeStartTime = 0.0f;
 
+static float steveLastChargeTime = 0.0f;  // Steve의 마지막 차징 시간 저장
+static float alexLastChargeTime = 0.0f;   // Alex의 마지막 차징 시간 저장
+
 static float maxChargeTime = 2.5f; // 최대 차징 시간 (3초에서 2.5초로 단축)
 static float minSpeed = 5.0f;     // 최소 속도 (더욱 증가)
 static float maxSpeed = 40.0f;     // 최대 속도 (더욱 증가)
@@ -520,6 +523,7 @@ void KeyboardUp(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
+// 차징 관련 변수들 제거하고 간단하게
 void fireSteveSnowball()
 {
 	if (!steve) return;
@@ -949,10 +953,8 @@ void checkAlexMoving()
 	if (!moving && alex) alex->changeState(1, 0); // leg idle
 }
 
-// TimerFunction: moveDir 설정 후 Character::update(map) 호출 — 클래스 내부 충돌 로직 수행
 void TimerFunction(int value)
 {
-	// 타이틀 화면에서는 게임 로직 업데이트 안함
 	if (currentGameState == GameState::TITLE_SCREEN) {
 		glutPostRedisplay();
 		glutTimerFunc(16, TimerFunction, 1);
@@ -961,32 +963,30 @@ void TimerFunction(int value)
 
 	float deltaTime = 0.016f;
 
+	// 눈 애니메이션 업데이트
+	snowSystem.updateAnimations(deltaTime);
+
 	// 눈덩이 업데이트
 	for (auto& sb : snowballs) sb.update(deltaTime, snowSystem, gameMap);
 	snowballs.erase(std::remove_if(snowballs.begin(), snowballs.end(),
 		[](const Snowball& s) { return !s.getIsActive(); }), snowballs.end());
 
-	// 눈덩이와 캐릭터 간의 충돌 검사
+	// 충돌 검사
 	checkAllSnowballCollisions();
 
-	// 키 기반 moveDir 설정 (KeyManager 폴링)
+	// 캐릭터 업데이트
 	updateStevePosition(deltaTime);
 	updateAlexPosition(deltaTime);
 
-	// Character에서 충돌검사 포함한 이동 수행
 	if (steve) steve->update(gameMap, snowSystem);
 	if (alex) alex->update(gameMap, snowSystem);
 
-	// 이동 상태 점검(정지시 IDLE)
 	checkSteveMoving();
 	checkAlexMoving();
 
-	// 카메라 위치 동기화
 	cameraPos = camera.position;
 	cameraFront = camera.front;
 	cameraUp = camera.up;
-
-	// 애니메이션(내부) 업데이트 이미 Character::update에서 처리됨
 
 	glutPostRedisplay();
 	glutTimerFunc(16, TimerFunction, 1);
