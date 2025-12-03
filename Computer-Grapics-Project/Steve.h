@@ -1,4 +1,4 @@
-#include "Character.h"
+﻿#include "Character.h"
 #include "Map.h"
 #include "Snow.h"
 
@@ -9,26 +9,26 @@ namespace Steve {
 		Part gBody, gHead, gArmL, gArmR, gLegL, gLegR, gBoundingBox;
 		GLuint textureID;
 		glm::vec3 pos = { 4.5f, 1.5f, 2.0f };
-		glm::vec2 moveDir = { 0.0f, 0.0f }; // ??? ???? ???? x, z
-		GLfloat moveSpeed = 0.085f; // ??? ???
-		GLfloat throwingSpeed = 1.3f; // ????? ???
-		GLint armState = 0; // 0: IDLE, 1: RUN, 2: CHARGE 3: THROW
-		GLfloat armAngle = 0.0f; // ?? ??? ????
-		GLfloat armDir = 1.0f; // ?? ??? ????
+		glm::vec2 moveDir = { 0.0f, 0.0f }; // �̵� ���� ���� x, z
+		GLfloat moveSpeed = 0.085f; // �̵� �ӵ�
+		GLfloat throwingSpeed = 1.3f; // ����ü �ӵ�
+		GLint armState = 0; // 0: IDLE, 1: RUN, 2: CHARGE, 3: LOWERING
+		GLfloat armAngle = 0.0f; // 라디안 사용
+		GLfloat armDir = 1.0f; // �� ȸ�� ����
 		GLint legState = 0; // 0: IDLE, 1: RUN
-		GLfloat legAngle = 0.0f; // ??? ??? ????
-		GLfloat legDir = 1.0f; // ??? ??? ????
-		glm::vec3 boundingBoxSize; // ???? ??? ??? ????
+		GLfloat legAngle = 0.0f; // �ٸ� ȸ�� ����
+		GLfloat legDir = 1.0f; // �ٸ� ȸ�� ����
+		glm::vec3 boundingBoxSize; // �ٿ�� �ڽ� ũ�� ����
 
 		Character(const char* texturePath) {
 			textureID = Init::loadTexture(texturePath);
 
-			const float gap = 0.02f; // ?????? ?? ???? (0.03f -> 0.02f)
+			const float gap = 0.02f; // ������ �� ���� (0.03f -> 0.02f)
 
-			// ????? ???? ???? (??? ???? ?? 1.5 ??????)
-			glm::vec3 bodyH(0.3f, 0.35f, 0.15f);   // ????: (0.35, 0.5, 0.17) -> (0.3, 0.35, 0.15)
-			glm::vec3 headH(0.25f, 0.25f, 0.25f);  // ???: (0.33, 0.33, 0.33) -> (0.25, 0.25, 0.25)
-			glm::vec3 limbH(0.12f, 0.35f, 0.12f);  // ????: (0.17, 0.5, 0.17) -> (0.12, 0.35, 0.12)
+			// ���̸� ���� ���� (��ü ���� �� 1.5 ������)
+			glm::vec3 bodyH(0.3f, 0.35f, 0.15f);   // ����: (0.35, 0.5, 0.17) -> (0.3, 0.35, 0.15)
+			glm::vec3 headH(0.25f, 0.25f, 0.25f);  // �Ӹ�: (0.33, 0.33, 0.33) -> (0.25, 0.25, 0.25)
+			glm::vec3 limbH(0.12f, 0.35f, 0.12f);  // �ȴٸ�: (0.17, 0.5, 0.17) -> (0.12, 0.35, 0.12)
 
 			UVRect headUVs[] = { {0,8,8,8}, {16,8,8,8}, {8,0,8,8}, {16,0,8,8}, {8,8,8,8}, {24,8,8,8} };
 			UVRect bodyUVs[] = { {16,20,4,12}, {28,20,4,12}, {20,16,8,4}, {28,16,8,4}, {20,20,8,12}, {32,20,8,12} };
@@ -47,12 +47,12 @@ namespace Steve {
 			glm::vec3 armROffset(+(bodyH.x + limbH.x + gap), bodyH.y - limbH.y, 0);
 			gArmL = Init::makeCubePart(limbH, armLOffset, armLUVs, armFlips, glm::vec3(0, +limbH.y, 0));
 			gArmR = Init::makeCubePart(limbH, armROffset, armRUVs, armFlips, glm::vec3(0, +limbH.y, 0));
-			glm::vec3 legLOffset(-0.15f, -(bodyH.y + limbH.y + gap), 0); // ??? ???? ?? ???? (0.2f -> 0.15f)
+			glm::vec3 legLOffset(-0.15f, -(bodyH.y + limbH.y + gap), 0); // �ٸ� ���� �� ���� (0.2f -> 0.15f)
 			glm::vec3 legROffset(0.15f, -(bodyH.y + limbH.y + gap), 0);
 			gLegL = Init::makeCubePart(limbH, legLOffset, legLUVs, headBodyLegFlips, glm::vec3(0, +limbH.y, 0));
 			gLegR = Init::makeCubePart(limbH, legROffset, legRUVs, headBodyLegFlips, glm::vec3(0, +limbH.y, 0));
 
-			// Bounding Box ???? (?? ???? ??? ????)
+			// Bounding Box ���� (�� �پ�� ũ�⿡ ����)
 			float top = headOffset.y + headH.y;
 			float bottom = legLOffset.y - limbH.y;
 			float front = headOffset.z + headH.z;
@@ -68,7 +68,8 @@ namespace Steve {
 			if (body == 0) {
 				if (armState != newState) {
 					armState = newState; // arm
-					armAngle = 0.0f;
+					// IDLE/RUN 전환 시 기본 각도 초기화
+					if (newState == 0 || newState == 1) armAngle = 0.0f;
 					if (newState == 1) armDir = 1.0f; // RUN
 				}
 			}
@@ -83,14 +84,16 @@ namespace Steve {
 
 		void enterCharge() {
 			armState = 2; // CHARGE
-			armAngle = -90.0f;
+			// 차징 시작 시 각도는 Timer에서 비율에 따라 갱신됨
+			armAngle = 0.0f;
 		}
 
 		void enterThrow() {
-			armState = 3; // THROW
+			// 발사 후 팔 내리는 상태로 전환
+			armState = 3; // LOWERING
 		}
 
-		// AABB ?�� ??? ???
+		// AABB �浹 �˻� �Լ�
 		bool checkCollision(const glm::vec3& characterMin, const glm::vec3& characterMax, const Block& block) {
 			float blockSize = block.getSize();
 			glm::vec3 blockMin = { block.getX() - blockSize / 2.0f, block.getY() - blockSize / 2.0f, block.getZ() - blockSize / 2.0f };
@@ -103,13 +106,13 @@ namespace Steve {
 			return collisionX && collisionY && collisionZ;
 		}
 
-		// ???????? ?�� ???
+		// ��ֹ����� �浹 �˻�
 		bool isCollidingWithObstacles(const glm::vec3& nextPos, const Map& map) {
 			glm::vec3 halfSize = boundingBoxSize / 2.0f;
 			glm::vec3 characterMin = nextPos + gBoundingBox.offset - halfSize;
 			glm::vec3 characterMax = nextPos + gBoundingBox.offset + halfSize;
 
-			// ???? ?�� ???
+			// ���� �浹 �˻�
 			const Wall& wall = map.getWall();
 			for (size_t i = 0; i < wall.getBlockCount(); ++i) {
 				if (checkCollision(characterMin, characterMax, wall.getBlock(i))) {
@@ -117,31 +120,31 @@ namespace Steve {
 				}
 			}
 
-			return false; // ?�� ????
+			return false; // �浹 ����
 		}
 
 		int isCollidingWithSnow(const glm::vec3& checkPos, const Snow& snow) {
-			// ?? ??????? ?�� ???, ?��?? ???? ?? 0, ?? ?????? ????? 0.5f?? 1, 1.0f?? 2?? ???.
+			// �� ���ϰ��� �浹 �˻�, �浹�� ���� �� 0, �� ������ ���̰� 0.5f�� 1, 1.0f�� 2�� ��ȯ.
 			glm::vec3 halfSize = boundingBoxSize / 2.0f;
 			glm::vec3 characterMin = checkPos + gBoundingBox.offset - halfSize;
 			glm::vec3 characterMax = checkPos + gBoundingBox.offset + halfSize;
 
-			// ��?????? ???? ????? ??????? ????? ?????? ???????.
+			// ĳ������ �ٿ�� �ڽ��� �����ϴ� �׸��� ������ ����մϴ�.
 			int minGridX = static_cast<int>(floor(characterMin.x));
 			int maxGridX = static_cast<int>(ceil(characterMax.x));
 			int minGridZ = static_cast<int>(floor(characterMin.z));
 			int maxGridZ = static_cast<int>(ceil(characterMax.z));
 
-			// ??? ???? ????? ???? ?????? ?��?? ???????.
+			// ��� ���� �׸��� ���� ��ȸ�ϸ� �浹�� �˻��մϴ�.
 			for (int gx = minGridX; gx <= maxGridX; ++gx) {
 				for (int gz = minGridZ; gz <= maxGridZ; ++gz) {
 					float snowHeight = snow.getSnowHeightAt(gx, gz);
 					if (snowHeight > 0) {
-						// ?? ?????? ???? ????? ????????. (????? ????)
+						// �� ������ �ٿ�� �ڽ��� �����մϴ�. (�߽��� ����)
 						glm::vec3 blockMin = { gx - 0.5f, 0.0f, gz - 0.5f };
 						glm::vec3 blockMax = { gx + 0.5f, snowHeight, gz + 0.5f };
 
-						// AABB ?�� ???
+						// AABB �浹 �˻�
 						bool collisionX = characterMin.x <= blockMax.x && characterMax.x >= blockMin.x;
 						bool collisionZ = characterMin.z <= blockMax.z && characterMax.z >= blockMin.z;
 
@@ -152,7 +155,7 @@ namespace Steve {
 					}
 				}
 			}
-			return 0; // ?�� ????
+			return 0; // �浹 ����
 		}
 
 		bool isOutsideFrontGround(const glm::vec3& nextPos, const Map& map) {
@@ -171,77 +174,91 @@ namespace Steve {
 			float maxZ = lastBlock.getZ() + blockSize / 2.0f;
 
 			if (characterMin.x < minX || characterMax.x > maxX || characterMin.z < minZ || characterMax.z > maxZ) {
-				return true; // ??? ????
+				return true; // ��� ���
 			}
 
-			return false; // ??? ???? ????
+			return false; // ��� ���� ����
 		}
 
 		void update(const Map& map, const Snow& snow) {
-			if (moveDir.x == 0.0f && moveDir.y == 0.0f) {
-				// ???? ????
-				if (armState < 2) changeState(0, 0); // arm IDLE
-				changeState(1, 0); // leg IDLE
-			}
-			else {
-				// ??? ????
-				if (armState < 2) changeState(0, 1); // arm RUN
+			// 1) 상태 전환 (팔/다리)
+			const bool isMoving = (moveDir.x != 0.0f || moveDir.y != 0.0f);
+			if (isMoving) {
+				if (armState < 2) changeState(0, 1); // RUN
 				changeState(1, 1); // leg RUN
 			}
+			else {
+				if (armState < 2) changeState(0, 0); // IDLE
+				changeState(1, 0); // leg IDLE
+			}
 
-			int currentSnowCollisionType = isCollidingWithSnow(pos, snow);
+			// 2) 이동 속도 계산 (눈 충돌에 따른 감속 + 상한 클램프)
+			int snowTypeAtPos = isCollidingWithSnow(pos, snow);
 			float currentMoveSpeed = moveSpeed;
+			if (snowTypeAtPos == 1) currentMoveSpeed *= 0.7f; // 얕은 눈 감속
+			const float maxMoveSpeed = 1.5f;
+			if (currentMoveSpeed > maxMoveSpeed) currentMoveSpeed = maxMoveSpeed;
 
-			if (currentSnowCollisionType == 1) currentMoveSpeed *= 0.7f; // ?? ???? 0.5, ??? 30% ????
+			// 3) 입력 벡터 정규화
+			glm::vec2 dir = moveDir;
+			float len = glm::length(dir);
+			if (len > 1e-4f) dir /= len;
 
-			// ??? ?? ?�� ???
+			// 4) 축별로 충돌 검사하며 이동
 			glm::vec3 nextPos = pos;
 
-			// X?? ??? ???
-			nextPos.x += moveDir.x * currentMoveSpeed;
-			if (isCollidingWithSnow(nextPos, snow) < 2 &&
-				!isCollidingWithObstacles(nextPos, map) && !isOutsideFrontGround(nextPos, map)) {
+			// X축 이동
+			nextPos.x += dir.x * currentMoveSpeed;
+			bool canMoveX = (isCollidingWithSnow(nextPos, snow) < 2) &&
+				(!isCollidingWithObstacles(nextPos, map)) &&
+				(!isOutsideFrontGround(nextPos, map));
+			if (canMoveX) {
 				pos.x = nextPos.x;
 			}
 
-			// Z?? ??? ???
-			nextPos = pos; // X?? ????? ????? ??????? ??? ????
-			nextPos.z += moveDir.y * currentMoveSpeed;
-			if (isCollidingWithSnow(nextPos, snow) < 2 &&
-				!isCollidingWithObstacles(nextPos, map) && !isOutsideFrontGround(nextPos, map)) {
+			// Z축 이동
+			nextPos = pos;
+			nextPos.z += dir.y * currentMoveSpeed;
+			bool canMoveZ = (isCollidingWithSnow(nextPos, snow) < 2) &&
+				(!isCollidingWithObstacles(nextPos, map)) &&
+				(!isOutsideFrontGround(nextPos, map));
+			if (canMoveZ) {
 				pos.z = nextPos.z;
 			}
 
+			// 5) 팔 상태별 애니메이션
 			switch (armState) {
 			case 0: // IDLE
 				break;
 			case 1: // RUN
 				armAngle += armDir * 0.05f;
-				if (armAngle > glm::radians(60.0f) || armAngle < glm::radians(-60.0f)) armDir = -armDir;
-
+				if (armAngle > glm::radians(60.0f) || armAngle < glm::radians(-60.0f))
+					armDir = -armDir;
 				break;
 			case 2: // CHARGE
-
-
+				// 팔 각도는 TimerFunction에서 -π * ratio 로 갱신
 				break;
-			case 3: // THROW
-				armAngle += 0.08f;
-
-				if (armAngle > -88.0f) {
+			case 3: // LOWERING
+			{
+				const float lowerSpeed = 0.25f;
+				armAngle += lowerSpeed;
+				if (armAngle >= 0.0f) {
 					armAngle = 0.0f;
-					if (legState == 0) changeState(0, 0);
-					else changeState(0, 1);
+					if (isMoving) changeState(0, 1);
+					else changeState(0, 0);
 				}
-				break;
+			}
+			break;
 			}
 
+			// 6) 다리 애니메이션
 			switch (legState) {
 			case 0: // IDLE
 				break;
 			case 1: // RUN
 				legAngle += legDir * 0.05f;
-				if (legAngle > glm::radians(60.0f) || legAngle < glm::radians(-60.0f)) legDir = -legDir;
-
+				if (legAngle > glm::radians(60.0f) || legAngle < glm::radians(-60.0f))
+					legDir = -legDir;
 				break;
 			}
 		}
@@ -266,13 +283,12 @@ namespace Steve {
 
 			glm::mat4 Mbase = glm::translate(glm::mat4(1.0f), pos);
 
-			float alArm = armAngle; // ????? ????? ?? ????
-
+			float alArm = armAngle; // 라디안 각도
 			float arArm = -alArm;
-			if (armState >= 2) arArm = 0.0f; // ?????? ????????? ???????? ?????? ?? ????
+			if (armState >= 2) arArm = 0.0f; // 차징/내리는 동안 오른팔 고정
 
 			float aLeg = std::sin(legAngle) * glm::radians(60.0f);
-			aLeg *= -1.0f; // ????? ??? ??? ???????? ??????
+			aLeg *= -1.0f;
 
 			glm::mat4 Mbody = Mbase * glm::translate(glm::mat4(1.0f), gBody.offset);
 			drawVAO(gBody, Mbody);
@@ -291,9 +307,8 @@ namespace Steve {
 
 			glm::mat4 Mlr = Mbase * glm::translate(glm::mat4(1.0f), gLegR.offset) * glm::translate(glm::mat4(1.0f), gLegR.pivot) * glm::rotate(glm::mat4(1.0f), -aLeg, glm::vec3(1, 0, 0)) * glm::translate(glm::mat4(1.0f), -gLegR.pivot);
 			drawVAO(gLegR, Mlr);
-
-
-
 		}
+
+		
 	};
 }

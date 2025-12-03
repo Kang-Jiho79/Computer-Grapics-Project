@@ -106,9 +106,10 @@ static float alexChargeStartTime = 0.0f;
 static float steveLastChargeTime = 0.0f;  // Steve의 마지막 차징 시간 저장
 static float alexLastChargeTime = 0.0f;   // Alex의 마지막 차징 시간 저장
 
-static float maxChargeTime = 2.5f; // 최대 차징 시간 (3초에서 2.5초로 단축)
-static float minSpeed = 5.0f;     // 최소 속도 (더욱 증가)
-static float maxSpeed = 40.0f;     // 최대 속도 (더욱 증가)
+// 눈덩이 차징 파라미터 (속도 낮춤, 차징은 빠르게)
+static float maxChargeTime = 1.0f;  // 차징 시간 더 짧게 (빠르게 최대로)
+static float minSpeed = 2.0f;       // 초기 속도 낮춤 (기존 5.0f → 2.0f)
+static float maxSpeed = 15.0f;      // 최대 속도 낮춤 (기존 40.0f → 18.0f)
 
 // 2D 얼굴 렌더링을 위한 버퍼와 텍스처
 static GLuint faceVAO = 0, faceVBO = 0;
@@ -511,11 +512,15 @@ void KeyboardUp(unsigned char key, int x, int y)
 	case 'e': case 'E': // Steve 눈덩이 발사
 		if (steveCharging) {
 			fireSteveSnowball();
+			// 팔 내리기 시작 (빠르게 내리는 상태로)
+			if (steve) steve->enterThrow(); // 이제 LOWERING 상태로 전환
 		}
 		break;
 	case 'o': case 'O': // Alex 눈덩이 발사
 		if (alexCharging) {
 			fireAlexSnowball();
+			// 팔 내리기 시작
+			if (alex) alex->enterThrow(); // LOWERING 상태로 전환
 		}
 		break;
 	}
@@ -523,30 +528,25 @@ void KeyboardUp(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
-// 차징 관련 변수들 제거하고 간단하게
+
 void fireSteveSnowball()
 {
-	if (!steve) return;
+    if (!steve) return;
+    float currentTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+    float chargeTime = currentTime - steveChargeStartTime;
+    float chargeRatio = std::min(chargeTime / maxChargeTime, 1.0f);
 
-	float currentTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
-	float chargeTime = currentTime - steveChargeStartTime;
-	float chargeRatio = std::min(chargeTime / maxChargeTime, 1.0f);
-	float speed = minSpeed + (maxSpeed - minSpeed) * chargeRatio;
+    float speed = minSpeed + (maxSpeed - minSpeed) * chargeRatio;
+    speed *= steve->throwingSpeed;     // 캐릭터 보정
+    speed = std::min(speed, maxSpeed); // 최종 상한
 
-	steve->enterThrow();
-	speed *= steve->throwingSpeed; // Steve의 투사체 속도 적용
+    glm::vec3 shootDirection = steveCamera.getFront();
+    glm::vec3 startPos = steve->pos + shootDirection * 1.0f + glm::vec3(0, 1, 0) * 0.5f;
+    glm::vec3 direction = shootDirection + glm::vec3(0, 1, 0) * 0.3f;
 
-	glm::vec3 shootDirection = steveCamera.getFront();
-	glm::vec3 startPos = steve->pos + shootDirection * 1.0f + glm::vec3(0, 1, 0) * 0.5f;
-	glm::vec3 direction = shootDirection + glm::vec3(0, 1, 0) * 0.3f;
-
-	Snowball newSnowball(startPos, direction, speed, 0.15f);
-	snowballs.push_back(newSnowball);
-
-	std::cout << "Steve 눈덩이 발사! 차징 시간: " << chargeTime << "초, 속도: " << speed
-		<< " (현재 " << snowballs.size() << "개)" << std::endl;
-
-	steveCharging = false;
+    Snowball newSnowball(startPos, direction, speed, 0.15f);
+    snowballs.push_back(newSnowball);
+    steveCharging = false;
 }
 
 void fireAlexSnowball()
@@ -558,8 +558,8 @@ void fireAlexSnowball()
 	float chargeRatio = std::min(chargeTime / maxChargeTime, 1.0f);
 	float speed = minSpeed + (maxSpeed - minSpeed) * chargeRatio;
 
-	alex->enterThrow();
-	speed *= alex->throwingSpeed; // Alex의 투사체 속도 적용
+	speed *= alex->throwingSpeed;
+	speed = std::min(speed, maxSpeed);
 
 	glm::vec3 shootDirection = alexCamera.getFront();
 	glm::vec3 startPos = alex->pos + shootDirection * 1.0f + glm::vec3(0, 1, 0) * 0.5f;
@@ -973,6 +973,20 @@ void TimerFunction(int value)
 
 	// 충돌 검사
 	checkAllSnowballCollisions();
+
+	// CHARGE 상태일 때 팔 각도를 차징 비율로 업데이트 (0~π 라디안)
+	if (steve && steveCharging && steve->armState == 2) {
+		float currentTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+		float chargeTime = currentTime - steveChargeStartTime;
+		float chargeRatio = std::min(chargeTime / maxChargeTime, 1.0f);
+		steve->armAngle = -glm::radians(180.0f) * chargeRatio;
+	}
+	if (alex && alexCharging && alex->armState == 2) {
+		float currentTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+		float chargeTime = currentTime - alexChargeStartTime;
+		float chargeRatio = std::min(chargeTime / maxChargeTime, 1.0f);
+		alex->armAngle = -glm::radians(180.0f) * chargeRatio;
+	}
 
 	// 캐릭터 업데이트
 	updateStevePosition(deltaTime);
