@@ -20,8 +20,8 @@ Alex_Camera::Alex_Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitc
 
 void Alex_Camera::updateFromCharacterPosition(const glm::vec3& characterPosition)
 {
-    // 캐릭터의 머리 부분에 카메라 위치 설정 (캐릭터보다 약간 위)
-    position = characterPosition + glm::vec3(0.0f, 0.8f, 0.0f); // 눈 높이
+    // 캐릭터의 머리 부분에 카메라 위치 설정
+    position = characterPosition + glm::vec3(0.0f, 0.8f, 0.0f);
 }
 
 glm::mat4 Alex_Camera::getViewMatrix() const
@@ -31,8 +31,7 @@ glm::mat4 Alex_Camera::getViewMatrix() const
 
 glm::mat4 Alex_Camera::getProjectionMatrix(float screenWidth, float screenHeight) const
 {
-    // 수정: 분할화면에서 올바른 종횡비 계산
-    float aspectRatio = screenWidth / screenHeight; // (screenWidth / 2.0f) 제거
+    float aspectRatio = screenWidth / screenHeight;
     return glm::perspective(glm::radians(zoom), aspectRatio, 0.1f, 100.0f);
 }
 
@@ -42,24 +41,19 @@ void Alex_Camera::processKeyboard(int key, float deltaTime)
     
     switch(key) {
         case GLUT_KEY_UP:
-            // 위쪽 보기
             pitch += velocity * 10.0f;
             break;
         case GLUT_KEY_DOWN:
-            // 아래쪽 보기
             pitch -= velocity * 10.0f;
             break;
         case GLUT_KEY_LEFT:
-            // 왼쪽 보기
             yaw -= velocity * 10.0f;
             break;
         case GLUT_KEY_RIGHT:
-            // 오른쪽 보기
             yaw += velocity * 10.0f;
             break;
     }
     
-    // pitch 제한
     if (pitch > 89.0f)
         pitch = 89.0f;
     if (pitch < -89.0f)

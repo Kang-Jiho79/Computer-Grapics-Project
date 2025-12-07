@@ -18,7 +18,6 @@ public:
     void render(GLuint shaderProgram) const;
     void cleanup();
 
-    // 승자 설정 및 텍스처 로드
     void setWinner(Winner w);
 
 private:

@@ -14,7 +14,7 @@ namespace Alex {
 		GLfloat moveSpeed = 0.1f; 
 		GLfloat throwingSpeed = 1.0f; 
 		GLint armState = 0; // 0: IDLE, 1: RUN, 2: CHARGE, 3: LOWERING
-		GLfloat armAngle = 0.0f; // 라디안 사용
+		GLfloat armAngle = 0.0f;
 		GLfloat armDir = 1.0f; 
 		GLint legState = 0; // 0: IDLE, 1: RUN
 		GLfloat legAngle = 0.0f; 
@@ -67,16 +67,16 @@ namespace Alex {
 		void changeState(int body, int newState) {
 			if (body == 0) {
 				if (armState != newState) {
-					armState = newState; // arm
+					armState = newState;
 					if (newState == 0 || newState == 1) armAngle = 0.0f;
-					if (newState == 1) armDir = 1.0f; // RUN
+					if (newState == 1) armDir = 1.0f;
 				}
 			}
 			else {
 				if (legState != newState) {
-					legState = newState; // leg
+					legState = newState;
 					legAngle = 0.0f;
-					if (newState == 1) legDir = -1.0f; // RUN
+					if (newState == 1) legDir = -1.0f;
 				}
 			}
 		}
@@ -171,33 +171,28 @@ namespace Alex {
 		}
 
 		void update(const Map& map, const Snow& snow) {
-			// 1) 상태 전환 (팔/다리)
 			const bool isMoving = (moveDir.x != 0.0f || moveDir.y != 0.0f);
 			if (isMoving) {
-				if (armState < 2) changeState(0, 1); // RUN
-				changeState(1, 1); // leg RUN
+				if (armState < 2) changeState(0, 1);
+				changeState(1, 1);
 			}
 			else {
-				if (armState < 2) changeState(0, 0); // IDLE
-				changeState(1, 0); // leg IDLE
+				if (armState < 2) changeState(0, 0);
+				changeState(1, 0);
 			}
 
-			// 2) 이동 속도 계산 (눈 충돌에 따른 감속 + 상한 클램프)
 			int snowTypeAtPos = isCollidingWithSnow(pos, snow);
 			float currentMoveSpeed = moveSpeed;
-			if (snowTypeAtPos == 1) currentMoveSpeed *= 0.5f; // 얕은 눈 감속
+			if (snowTypeAtPos == 1) currentMoveSpeed *= 0.5f;
 			const float maxMoveSpeed = 1.5f;
 			if (currentMoveSpeed > maxMoveSpeed) currentMoveSpeed = maxMoveSpeed;
 
-			// 3) 입력 벡터 정규화
 			glm::vec2 dir = moveDir;
 			float len = glm::length(dir);
 			if (len > 1e-4f) dir /= len;
 
-			// 4) 축별로 충돌 검사하며 이동
 			glm::vec3 nextPos = pos;
 
-			// X축 이동
 			nextPos.x += dir.x * currentMoveSpeed;
 			bool canMoveX = (isCollidingWithSnow(nextPos, snow) < 2) &&
 				(!isCollidingWithObstacles(nextPos, map)) &&
@@ -206,7 +201,6 @@ namespace Alex {
 				pos.x = nextPos.x;
 			}
 
-			// Z축 이동
 			nextPos = pos;
 			nextPos.z += dir.y * currentMoveSpeed;
 			bool canMoveZ = (isCollidingWithSnow(nextPos, snow) < 2) &&
@@ -216,10 +210,8 @@ namespace Alex {
 				pos.z = nextPos.z;
 			}
 
-			// 5) 팔 상태별 애니메이션
 			switch (armState) {
 			case 0: // IDLE
-				// 팔 각도 유지
 				break;
 			case 1: // RUN
 				armAngle += armDir * 0.05f;
@@ -227,15 +219,13 @@ namespace Alex {
 					armDir = -armDir;
 				break;
 			case 2: // CHARGE
-				// 팔 각도는 TimerFunction에서 차징 비율로 -π * ratio 로 갱신됨
 				break;
-			case 3: // LOWERING: 빠르게 0으로 복귀, 복귀 완료 전까지 재차징 불가
+			case 3: // LOWERING
 			{
 				const float lowerSpeed = 0.25f;
 				armAngle += lowerSpeed;
 				if (armAngle >= 0.0f) {
 					armAngle = 0.0f;
-					// 완료 후 팔 상태를 이동 상태에 맞춰 복귀
 					if (isMoving) changeState(0, 1);
 					else changeState(0, 0);
 				}
@@ -243,10 +233,8 @@ namespace Alex {
 			break;
 			}
 
-			// 6) 다리 애니메이션
 			switch (legState) {
 			case 0: // IDLE
-				// 다리 각도 유지
 				break;
 			case 1: // RUN
 				legAngle += legDir * 0.05f;
@@ -275,7 +263,7 @@ namespace Alex {
 				};
 
 			glm::mat4 Mbase = glm::translate(glm::mat4(1.0f), pos);
-			Mbase = glm::rotate(Mbase, glm::radians(180.0f), glm::vec3(0, 1, 0)); // Alex는 뒤쪽을 향함
+			Mbase = glm::rotate(Mbase, glm::radians(180.0f), glm::vec3(0, 1, 0));
 
 			float alArm = armAngle;
 			float arArm = -alArm;

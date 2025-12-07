@@ -2,7 +2,6 @@
 #include <vector>
 #include <iostream>
 
-// PNG 로딩을 위한 stb_image
 #include "stb_image.h"
 
 TitleScreen::TitleScreen() : vao(0), vbo(0), isInitialized(false) {}
@@ -15,16 +14,14 @@ void TitleScreen::initialize() {
     if (isInitialized) return;
 
     initializeBuffers();
-    loadTitleTexture(); // Title.png 텍스처 로드
+    loadTitleTexture();
     isInitialized = true;
 
     std::cout << "타이틀 화면 초기화 완료" << std::endl;
 }
 
 void TitleScreen::initializeBuffers() {
-    // 전체 화면을 덮는 쿼드 생성 (NDC)
     std::vector<float> vertices = {
-        // 위치          // 텍스처 좌표
         -1.0f,  1.0f,   0.0f, 1.0f,
         -1.0f, -1.0f,   0.0f, 0.0f,
          1.0f, -1.0f,   1.0f, 0.0f,
@@ -42,11 +39,9 @@ void TitleScreen::initializeBuffers() {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
-    // 위치 속성
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
 
-    // 텍스처 좌표 속성
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
@@ -77,7 +72,7 @@ void TitleScreen::loadTitleTexture() {
     glGenerateMipmap(GL_TEXTURE_2D);
 
     // 텍스처 파라미터
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // 전체 화면 이미지에 적합
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -95,7 +90,6 @@ void TitleScreen::render(GLuint shaderProgram) const {
     glDisable(GL_DEPTH_TEST);
     glUseProgram(shaderProgram);
 
-    // 단위 행렬들 설정 (NDC 사용)
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 view = glm::mat4(1.0f);
     glm::mat4 projection = glm::mat4(1.0f);
@@ -115,14 +109,12 @@ void TitleScreen::render(GLuint shaderProgram) const {
     if (lightingEnabledLoc != -1) glUniform1i(lightingEnabledLoc, 0);
 
     if (textureLoaded && textureLoc != -1 && useTextureLoc != -1) {
-        // 텍스처 사용
         glUniform1i(useTextureLoc, 1);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, titleTextureId);
         glUniform1i(textureLoc, 0);
     }
     else {
-        // 텍스처 없으면 단색 배경
         if (useTextureLoc != -1) glUniform1i(useTextureLoc, 0);
         if (vColorLoc != -1) glUniform3f(vColorLoc, 0.1f, 0.1f, 0.3f);
     }
@@ -131,12 +123,10 @@ void TitleScreen::render(GLuint shaderProgram) const {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 
-    // 텍스처 바인딩 해제
     if (textureLoaded) {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    // 간단한 텍스트 안내 (콘솔)
     renderText("MINECRAFT SNOWBALL FIGHT", 0.0f, 0.3f, 2.0f);
     renderText("1 - First Person Mode", 0.0f, 0.0f, 1.0f);
     renderText("3 - Third Person Mode", 0.0f, -0.2f, 1.0f);
@@ -161,7 +151,7 @@ GameState TitleScreen::handleKeyInput(unsigned char key) const {
     case '3':
         std::cout << "3인칭 모드로 게임 시작!" << std::endl;
         return GameState::THIRD_PERSON_MODE;
-    case 27: // ESC
+    case 27:
     case 'q': case 'Q':
         std::cout << "게임 종료" << std::endl;
         exit(0);

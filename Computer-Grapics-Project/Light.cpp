@@ -2,7 +2,6 @@
 #include <iostream>
 #include <string>
 
-// Light 구조체 구현
 Light::Light() 
     : type(LightType::POINT), position(0.0f), direction(0.0f, -1.0f, 0.0f), 
       color(1.0f), intensity(1.0f), constant(1.0f), linear(0.09f), 
@@ -25,7 +24,6 @@ Light::Light(const glm::vec3& position, const glm::vec3& direction, const glm::v
       color(color), intensity(intensity), constant(1.0f), linear(0.09f), 
       quadratic(0.032f), cutOff(cutOff), outerCutOff(outerCutOff) {}
 
-// LightManager 클래스 구현
 LightManager::LightManager() 
     : ambientColor(0.2f, 0.2f, 0.2f), ambientStrength(0.1f) {
     lights.reserve(8);
@@ -82,32 +80,26 @@ void LightManager::updateLightDirection(size_t index, const glm::vec3& newDir) {
 }
 
 void LightManager::applyLighting(GLuint shaderProgram, const glm::vec3& viewPos) const {
-    // 카메라 위치 설정
     GLint viewPosLoc = glGetUniformLocation(shaderProgram, "viewPos");
     if (viewPosLoc != -1) {
         glUniform3fv(viewPosLoc, 1, &viewPos[0]);
     }
     
-    // 기존 셰이더와 호환되는 단순 조명 적용
     if (!lights.empty()) {
         const Light& mainLight = lights[0];
         
-        // 메인 조명 위치
         GLint lightPosLoc = glGetUniformLocation(shaderProgram, "lightPos");
         if (lightPosLoc != -1) {
             glUniform3fv(lightPosLoc, 1, &mainLight.position[0]);
         }
         
-        // 메인 조명 색상 (환경광 포함)
         GLint lightColorLoc = glGetUniformLocation(shaderProgram, "lightColor");
         if (lightColorLoc != -1) {
-            // 환경광을 조명 색상에 섞어서 전달
             glm::vec3 finalColor = mainLight.color * mainLight.intensity + ambientColor * ambientStrength;
             glUniform3fv(lightColorLoc, 1, &finalColor[0]);
         }
         
     } else {
-        // 조명이 없으면 기본값 설정
         GLint lightPosLoc = glGetUniformLocation(shaderProgram, "lightPos");
         GLint lightColorLoc = glGetUniformLocation(shaderProgram, "lightColor");
         
@@ -126,11 +118,9 @@ void LightManager::applyLighting(GLuint shaderProgram, const glm::vec3& viewPos)
 void LightManager::setupDefaultLighting() {
     clearLights();
 
-    // 기본 점광원 하나 추가 (맵 중앙 위) 세기 감소
     Light mainLight(glm::vec3(5.0f, 10.0f, 7.5f), glm::vec3(1.0f, 1.0f, 1.0f), 0.6f, 1.0f, 0.09f, 0.032f);
     addLight(mainLight);
 
-    // 환경광 설정 (세기 감소)
     setAmbientLight(glm::vec3(0.18f, 0.18f, 0.18f), 0.06f);
 
     std::cout << "기본 조명 설정 완료" << std::endl;
@@ -138,7 +128,6 @@ void LightManager::setupDefaultLighting() {
 
 void LightManager::setupCameraFollowLight(const glm::vec3& cameraPos) {
     if (!lights.empty() && lights[0].type == LightType::POINT) {
-        // 카메라 근처에 조명 위치 업데이트
         glm::vec3 lightOffset(2.0f, 5.0f, 2.0f);
         updateLightPosition(0, cameraPos + lightOffset);
     }
@@ -147,11 +136,9 @@ void LightManager::setupCameraFollowLight(const glm::vec3& cameraPos) {
 void LightManager::setupSceneStaticLight() {
     clearLights();
 
-    // 맵을 잘 비추는 메인 조명 설정 (세기 감소)
     Light mainLight(glm::vec3(5.0f, 15.0f, 7.5f), glm::vec3(1.0f, 1.0f, 1.0f), 0.9f, 1.0f, 0.05f, 0.02f);
     addLight(mainLight);
 
-    // 환경광 설정 (세기 감소)
     setAmbientLight(glm::vec3(0.22f, 0.22f, 0.22f), 0.12f);
 
     std::cout << "정적 장면 조명 설정 완료" << std::endl;

@@ -9,23 +9,20 @@
 #include <gl/glm/gtc/matrix_transform.hpp>
 #include "stb_image.h"
 
-// ===== 공통 구조체 =====
 struct Part {
 	GLuint vao{ 0 };
 	GLuint vbo{ 0 };
-	GLuint nbo{ 0 }; // 법선 VBO
-	GLuint tbo{ 0 }; // 텍스처 좌표 VBO
+	GLuint nbo{ 0 };
+	GLuint tbo{ 0 };
 	GLsizei count{ 0 };
-	glm::vec3 offset{ 0.0f }; // 부모로부터의 이동 (로컬 원점 기준)
-	glm::vec3 pivot{ 0.0f };  // 로컬 회전 중심 (메시 좌표계)
+	glm::vec3 offset{ 0.0f };
+	glm::vec3 pivot{ 0.0f };
 };
 
-// 텍스처 아틀라스의 특정 영역을 나타내는 구조체
 struct UVRect {
 	float u, v, w, h;
 };
 
-// ===== 공통 헬퍼 함수들 =====
 namespace Init {
 
 	static GLuint loadTexture(const char* filepath)
@@ -156,7 +153,6 @@ namespace Init {
 		float h = height / 2.0f;
 		float d = depth / 2.0f;
 
-		// 8개의 꼭짓점 정의
 		glm::vec3 p[8];
 		p[0] = glm::vec3(-w, -h, -d);
 		p[1] = glm::vec3(w, -h, -d);
@@ -167,7 +163,6 @@ namespace Init {
 		p[6] = glm::vec3(w, h, d);
 		p[7] = glm::vec3(-w, h, d);
 
-		// 12개의 선을 위한 24개의 정점 데이터
 		// 아래쪽 4개 선
 		vertices.push_back(p[0]); vertices.push_back(p[1]);
 		vertices.push_back(p[1]); vertices.push_back(p[2]);

@@ -5,30 +5,28 @@
 #include <gl/glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-// STB_IMAGE_IMPLEMENTATION은 이미 Main.cpp에서 정의되어 있으므로 여기서는 정의하지 않음
 #include "stb_image.h"
 
 Block::Block() : x(0.0f), y(0.0f), z(0.0f), size(10.0f), texturePath("oak_planks.png")
 {
-    // 생성자에서는 OpenGL 리소스를 생성하지 않음
+    
 }
 
 Block::Block(float x, float y, float z, float size, const std::string& texturePath) 
     : x(x), y(y), z(z), size(size), texturePath(texturePath)
 {
-    // 생성자에서는 OpenGL 리소스를 생성하지 않음 (lazy initialization)
+    
 }
 
 Block::Block(const Block& other) 
     : x(other.x), y(other.y), z(other.z), size(other.size), texturePath(other.texturePath)
 {
-    // 복사 생성자에서는 OpenGL 리소스를 공유하지 않고 새로 생성
+ 
 }
 
 Block& Block::operator=(const Block& other)
 {
     if (this != &other) {
-        // 기존 리소스 해제
         if (isInitialized) {
             glDeleteVertexArrays(1, &vao);
             glDeleteBuffers(1, &vbo);
@@ -43,7 +41,6 @@ Block& Block::operator=(const Block& other)
             count = 0;
         }
         
-        // 값 복사
         x = other.x;
         y = other.y;
         z = other.z;
@@ -77,7 +74,7 @@ void Block::setSize(float size)
 {
     this->size = size;
     if (isInitialized) {
-        initialize(); // 크기가 변경되면 다시 초기화
+        initialize();
     }
 }
 
@@ -130,7 +127,7 @@ void Block::loadTexture() const
     }
     else {
         std::cerr << "텍스처 로드 실패: " << texturePath << std::endl;
-        // 기본 텍스처 생성 (흰색)
+        // 기본 텍스처 생성
         unsigned char whitePixel[3] = {255, 255, 255};
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, whitePixel);
         textureLoaded = true;
@@ -192,7 +189,7 @@ void Block::initialize() const
         {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}, {0, -1, 0}
     };
 
-    // 텍스처 좌표 (모든 면에 동일한 텍스처 매핑)
+    // 텍스처 좌표
     std::vector<glm::vec2> texCoords = {
         // Front face
         {0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f},
@@ -219,7 +216,7 @@ void Block::initialize() const
         {1.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f}
     };
 
-    // OpenGL 버퍼 생성
+    // 버퍼 생성
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
     glGenBuffers(1, &nbo);
@@ -251,30 +248,24 @@ void Block::initialize() const
     count = static_cast<GLsizei>(vertices.size());
     isInitialized = true;
     
-    // 텍스처 로드
     loadTexture();
 }
 
 void Block::render(GLuint shaderProgram, const glm::vec3& color) const
 {
-    // Lazy initialization
     if (!isInitialized) {
         initialize();
     }
 
-    // 텍스처 바인딩
     if (textureLoaded && texture != 0) {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
     }
 
-    // 모델 행렬 생성 (블록의 위치로 이동)
     glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z));
     
-    // 법선 행렬 계산 (모델 행렬의 역전치 행렬)
     glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(model)));
     
-    // 셰이더에 유니폼 전달
     GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
     GLint normalMatrixLoc = glGetUniformLocation(shaderProgram, "normalMatrix");
     GLint vColorLoc = glGetUniformLocation(shaderProgram, "vColor");
@@ -294,14 +285,12 @@ void Block::render(GLuint shaderProgram, const glm::vec3& color) const
         glUniform1i(useTextureLoc, textureLoaded ? 1 : 0);
     }
     if (textureLoc != -1) {
-        glUniform1i(textureLoc, 0); // texture unit 0
+        glUniform1i(textureLoc, 0);
     }
 
-    // 렌더링
     glBindVertexArray(vao);
     glDrawArrays(GL_TRIANGLES, 0, count);
     glBindVertexArray(0);
     
-    // 텍스처 언바인딩
     glBindTexture(GL_TEXTURE_2D, 0);
 }

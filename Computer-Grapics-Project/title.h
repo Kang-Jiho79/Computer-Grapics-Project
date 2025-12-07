@@ -29,7 +29,6 @@ private:
     GLuint vbo;
     bool isInitialized;
 
-    // 추가: 타이틀 배경 텍스처
     GLuint titleTextureId = 0;
     bool textureLoaded = false;
 };

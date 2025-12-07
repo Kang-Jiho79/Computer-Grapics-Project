@@ -14,25 +14,22 @@
 #include <sstream>
 #include <string>
 #include <limits>
-#include <algorithm>  // std::remove_if를 위해 추가
-#include "Map.h"      // 맵 헤더
-#include "Light.h"    // 조명 헤더 추가
-//#include "stb_image.h"  // stb_image 헤더 추가
-#include "Steve.h"      // Steve 헤더 추가
-#include "Alex.h"       // Alex 헤더 추가
-#include "Camera.h"     // Camera 헤더 추가
-#include "Steve_Camera.h"  // Steve 1인칭 카메라
-#include "Alex_Camera.h"   // Alex 1인칭 카메라
-#include "Snowball.h"      // Snowball 헤더 추가
-#include "Snow.h"       // Snow 헤더 추가
+#include <algorithm>
+#include "Map.h"
+#include "Light.h"
+#include "Steve.h"
+#include "Alex.h"
+#include "Camera.h"
+#include "Steve_Camera.h"
+#include "Alex_Camera.h"
+#include "Snowball.h"
+#include "Snow.h"
 #include "KeyManager.h"
-#include "title.h"       // 타이틀 헤더 추가
-#include "finish.h" // 추가
+#include "title.h"
+#include "finish.h"
 
 #define WinX 1280
 #define WinY 720
-
-// stb_image 포함 (텍스처 로딩을 위해)
 
 char* filetobuf(const char* file)
 {
@@ -53,101 +50,85 @@ char* filetobuf(const char* file)
 	return buf;
 }
 
-// 전역 변수 정의 (다른 파일에서 extern으로 접근 가능)
 glm::vec3 cameraPos = glm::vec3(5.0f, 8.0f, 12.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-// 게임 상태 관리
 static GameState currentGameState = GameState::TITLE_SCREEN;
 static TitleScreen titleScreen;
-static FinishScreen finishScreen; // 추가
-static Winner winner = Winner::NONE; // 승자 상태 저장
+static FinishScreen finishScreen;
+static Winner winner = Winner::NONE;
 
-// 전역 객체들
-static Camera camera;  // 기본 3인칭 카메라 객체
-static Steve_Camera steveCamera; // Steve 1인칭 카메라
-static Alex_Camera alexCamera;   // Alex 1인칭 카메라
+static Camera camera;
+static Steve_Camera steveCamera;
+static Alex_Camera alexCamera;
 static LightManager lightManager;
 static Map gameMap;
 static Steve::Character* steve = nullptr;
 static Alex::Character* alex = nullptr;
-static Snow snowSystem("snow.png"); // 눈 시스템 - 텍스처 경로 지정
+static Snow snowSystem("snow.png");
 static KeyManager input;
 
 static bool steveThrowFlag = false;
 static bool alexThrowFlag = false;
 
-// 캐릭터 위치 관리
 static glm::vec3 stevePosition = glm::vec3(3.0f, 0.8f, 5.0f);
 static glm::vec3 alexPosition = glm::vec3(7.0f, 0.8f, 5.0f);
 
-// 분할 화면 모드 관련
-static bool splitScreenMode = false; // 분할 화면 모드 토글
+static bool splitScreenMode = false;
 
-// 기타 전역 변수들
-bool cameraLightMode = true;  // 카메라 따라다니는 조명 모드
+bool cameraLightMode = true;
 enum CharacterSelection { STEVE, ALEX };
 static CharacterSelection activeCharacter = STEVE;
 
-// 마우스 상태
 bool firstMouse = true;
 float lastX = WinX / 2.0f;
 float lastY = WinY / 2.0f;
 
-// 활성화된 눈덩이들
-static std::vector<Snowball> snowballs; // 활성화된 눈덩이들
+static std::vector<Snowball> snowballs;
 
-// 눈덩이 차징 관련 변수들 (Steve용)
 static bool steveCharging = false;
 static float steveChargeStartTime = 0.0f;
 
-// 눈덩이 차징 관련 변수들 (Alex용)
 static bool alexCharging = false;
 static float alexChargeStartTime = 0.0f;
 
-static float steveLastChargeTime = 0.0f;  // Steve의 마지막 차징 시간 저장
-static float alexLastChargeTime = 0.0f;   // Alex의 마지막 차징 시간 저장
+static float steveLastChargeTime = 0.0f;
+static float alexLastChargeTime = 0.0f;
 
-// 눈덩이 차징 파라미터 (속도 낮춤, 차징은 빠르게)
-static float maxChargeTime = 1.0f;  // 차징 시간 더 짧게 (빠르게 최대로)
-static float minSpeed = 2.0f;       // 초기 속도 낮춤 (기존 5.0f → 2.0f)
-static float maxSpeed = 15.0f;      // 최대 속도 낮춤 (기존 40.0f → 18.0f)
 
-// 2D 얼굴 렌더링을 위한 버퍼와 텍스처
+static float maxChargeTime = 1.0f;
+static float minSpeed = 2.0f;
+static float maxSpeed = 15.0f;
+
 static GLuint faceVAO = 0, faceVBO = 0;
 static bool faceBuffersInitialized = false;
 static GLuint steveFaceTextureID = 0;
 static GLuint alexFaceTextureID = 0;
 static bool faceTexturesLoaded = false;
 
-// 함수 선언
 void Mouse(int button, int state, int x, int y);
 void MouseMotion(int x, int y);
 void Keyboard(unsigned char key, int x, int y);
-void KeyboardUp(unsigned char key, int x, int y); // 키보드 릴리즈 함수 추가
+void KeyboardUp(unsigned char key, int x, int y);
 void SpecialKeyboard(int key, int x, int y);
-void SpecialKeyboardUp(int key, int x, int y); // 추가: 특수키 릴리즈 선언
+void SpecialKeyboardUp(int key, int x, int y);
 void TimerFunction(int value);
 
 void make_shaderProgram();
 GLvoid drawScene();
-GLvoid drawSplitScreen(); // 분할 화면 렌더링 함수
-GLvoid renderWorld(const glm::mat4& view, const glm::mat4& projection); // 월드 렌더링 함수
+GLvoid drawSplitScreen();
+GLvoid renderWorld(const glm::mat4& view, const glm::mat4& projection);
 GLvoid Reshape(int w, int h);
 
-// 게임 초기화 함수
 void initializeGame();
 
-// 눈덩이 발사 함수들
 void fireSteveSnowball();
 void fireAlexSnowball();
 
-// 충돌 처리 함수들
 bool checkSnowballCharacterCollision(const Snowball& snowball, const glm::vec3& characterPos, const glm::vec3& boundingBoxSize);
 void checkAllSnowballCollisions();
 
-// 얼굴 렌더링 함수들
 void initializeFaceBuffers();
 void loadFaceTextures();
 GLuint loadTexture(const char* path);
@@ -210,14 +191,12 @@ int main(int argc, char** argv)
 	glutDisplayFunc(drawScene);
 	glutReshapeFunc(Reshape);
 	glutKeyboardFunc(Keyboard);
-	glutKeyboardUpFunc(KeyboardUp); // 키보드 릴리즈 콜백 추가
+	glutKeyboardUpFunc(KeyboardUp);
 	glutSpecialFunc(SpecialKeyboard);
-	glutSpecialUpFunc(SpecialKeyboardUp); // ← 추가: 특수키 릴리즈 등록
+	glutSpecialUpFunc(SpecialKeyboardUp);
 	glutMouseFunc(Mouse);
 	glutPassiveMotionFunc(MouseMotion);
 	glutTimerFunc(16, TimerFunction, 1);
-
-	std::cout << "메인 루프 시작" << std::endl;
 	glutMainLoop();
 
 	return 0;
@@ -235,7 +214,6 @@ GLuint loadTexture(const char* path)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	// 이미지 로드
 	int width, height, channels;
 	stbi_set_flip_vertically_on_load(true);
 	unsigned char* data = stbi_load(path, &width, &height, &channels, 0);
@@ -249,7 +227,7 @@ GLuint loadTexture(const char* path)
 		else if (channels == 4)
 			format = GL_RGBA;
 		else
-			format = GL_RGB; // 기본값
+			format = GL_RGB;
 
 		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
@@ -258,7 +236,6 @@ GLuint loadTexture(const char* path)
 	}
 	else {
 		std::cerr << "텍스처 로드 실패: " << path << std::endl;
-		// 기본 텍스처 생성 (흰색)
 		unsigned char whitePixel[3] = { 255, 255, 255 };
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, whitePixel);
 	}
@@ -284,9 +261,7 @@ void initializeFaceBuffers()
 {
 	if (faceBuffersInitialized) return;
 
-	// 2D 쿼드를 위한 버텍스 데이터 (NDC 좌표계)
 	float quadVertices[] = {
-		// 위치        // 텍스처 좌표
 		-1.0f,  1.0f,  0.0f, 1.0f,
 		-1.0f, -1.0f,  0.0f, 0.0f,
 		 1.0f, -1.0f,  1.0f, 0.0f,
@@ -304,11 +279,9 @@ void initializeFaceBuffers()
 	glBindBuffer(GL_ARRAY_BUFFER, faceVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
 
-	// 위치 속성
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
 
-	// 텍스처 좌표 속성
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
@@ -324,25 +297,20 @@ void renderCharacterFace(GLuint textureID, float x, float y, float size, int scr
 		initializeFaceBuffers();
 	}
 
-	// 2D 렌더링을 위한 설정
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	// 텍스처 바인딩
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
-	// 2D 직교 투영 매트릭스 생성
 	glm::mat4 projection = glm::ortho(0.0f, (float)screenWidth, 0.0f, (float)screenHeight);
 	glm::mat4 view = glm::mat4(1.0f);
 	glm::mat4 model = glm::mat4(1.0f);
 
-	// 얼굴 위치와 크기 설정
 	model = glm::translate(model, glm::vec3(x, y, 0.0f));
 	model = glm::scale(model, glm::vec3(size, size, 1.0f));
 
-	// 셰이더 유니폼 설정
 	GLint modelLoc = glGetUniformLocation(shaderProgramID, "model");
 	GLint viewLoc = glGetUniformLocation(shaderProgramID, "view");
 	GLint projLoc = glGetUniformLocation(shaderProgramID, "projection");
@@ -359,12 +327,10 @@ void renderCharacterFace(GLuint textureID, float x, float y, float size, int scr
 	if (vColorLoc != -1) glUniform3f(vColorLoc, 1.0f, 1.0f, 1.0f);
 	if (textureLoc != -1) glUniform1i(textureLoc, 0);
 
-	// 쿼드 렌더링
 	glBindVertexArray(faceVAO);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glBindVertexArray(0);
 
-	// 설정 복원
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 }
@@ -374,54 +340,42 @@ void drawCharacterFaces(int winW, int winH)
 	if (!splitScreenMode || currentGameState != GameState::FIRST_PERSON_MODE) return;
 	if (!faceTexturesLoaded) return;
 
-	const float faceSize = 40.0f; // 얼굴 크기 (픽셀)
-	const float margin = 40.0f;   // 화면 가장자리로부터의 여백
+	const float faceSize = 40.0f;
+	const float margin = 40.0f;
 
-	// Steve 얼굴 (왼쪽 화면의 좌상단)
 	float steveX = margin;
-	float steveY = winH - faceSize - margin; // OpenGL은 Y축이 아래쪽이 0이므로 조정
+	float steveY = winH - faceSize - margin;
 
-	// Alex 얼굴 (오른쪽 화면의 좌상단)
-	float alexX = margin; // 오른쪽 뷰포트 내에서의 상대 위치
+	float alexX = margin;
 	float alexY = winH - faceSize - margin;
 
-	// Steve 얼굴 렌더링 (왼쪽 화면)
 	glViewport(0, 0, winW / 2, winH);
 	renderCharacterFace(steveFaceTextureID, steveX, steveY, faceSize, winW / 2, winH);
 
-	// Alex 얼굴 렌더링 (오른쪽 화면)
 	glViewport(winW / 2, 0, winW - winW / 2, winH);
 	renderCharacterFace(alexFaceTextureID, alexX, alexY, faceSize, winW - winW / 2, winH);
 
-	// 뷰포트를 전체 화면으로 복원
 	glViewport(0, 0, winW, winH);
 }
 
 void initializeGame() {
-	// 조명 시스템 초기화
 	lightManager.setupDefaultLighting();
 
-	// Map 초기화 (셰이더 프로그램 생성 후)
 	gameMap.initialize();
 	std::cout << "맵 초기화 완료" << std::endl;
 
-	// Steve 캐릭터 생성
 	steve = new Steve::Character("steve.png");
 	std::cout << "Steve 캐릭터 초기화 완료" << std::endl;
 
-	// Alex 캐릭터 생성
 	alex = new Alex::Character("alex.png");
 	std::cout << "Alex 캐릭터 초기화 완료" << std::endl;
 
-	// 눈 초기화
 	snowSystem.clearAll();
 	std::cout << "눈 초기화 완료" << std::endl;
 
-	// 얼굴 렌더링 시스템 초기화
 	initializeFaceBuffers();
 	loadFaceTextures();
 
-	// 카메라 모드에 따른 설정
 	if (currentGameState == GameState::FIRST_PERSON_MODE) {
 		splitScreenMode = true;
 		std::cout << "\n=== 1인칭 모드 조작법 ===" << std::endl;
@@ -444,12 +398,11 @@ void initializeGame() {
 	std::cout << "X: 모든 눈 제거" << std::endl;
 	std::cout << "ESC: 종료" << std::endl;
 
-	finishScreen.initialize(); // 쿼드 버퍼 준비 (텍스처는 승자 결정 시 로드)
+	finishScreen.initialize();
 }
 
 void Keyboard(unsigned char key, int x, int y)
 {
-	// 타이틀 화면에서 키 입력 처리
 	if (currentGameState == GameState::TITLE_SCREEN) {
 		GameState newState = titleScreen.handleKeyInput(key);
 		if (newState != GameState::TITLE_SCREEN) {
@@ -464,18 +417,14 @@ void Keyboard(unsigned char key, int x, int y)
 		if (key == 'q' || key == 'Q' || key == 27) {
 			exit(0);
 		} else if (key == 'r' || key == 'R') {
-			// 전체 초기화 후 타이틀로 복귀
-			// 자원 정리
 			if (steve) { delete steve; steve = nullptr; }
 			if (alex) { delete alex; alex = nullptr; }
 			snowballs.clear();
 			snowSystem.clearAll();
 
-			// 상태 초기화
 			winner = Winner::NONE;
 			currentGameState = GameState::TITLE_SCREEN;
 
-			// 타이틀 재초기화 (버퍼/텍스처가 유지되므로 호출만)
 			titleScreen.initialize();
 
 			glutPostRedisplay();
@@ -483,11 +432,10 @@ void Keyboard(unsigned char key, int x, int y)
 		return;
 	}
 
-	// 게임 중 키 입력 처리
 	input.pressKey(static_cast<int>(key));
 
 	switch (key) {
-	case 27: // ESC
+	case 27:
 	case 'q': case 'Q':
 		exit(0);
 		break;
@@ -495,7 +443,7 @@ void Keyboard(unsigned char key, int x, int y)
 		splitScreenMode = !splitScreenMode;
 		std::cout << "분할 화면 모드: " << (splitScreenMode ? "ON" : "OFF") << std::endl;
 		break;
-	case 9: // TAB
+	case 9:
 		activeCharacter = (activeCharacter == STEVE) ? ALEX : STEVE;
 		std::cout << "현재 선택된 캐릭터: " << (activeCharacter == STEVE ? "Steve" : "Alex") << std::endl;
 		break;
@@ -503,7 +451,7 @@ void Keyboard(unsigned char key, int x, int y)
 		if (!steveCharging && steve && steve->armState < 2) {
 			steveCharging = true;
 			steveChargeStartTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
-			steve->enterCharge(); // CHARGE 상태로 변경
+			steve->enterCharge();
 			std::cout << "Steve 던지기 준비..." << std::endl;
 		}
 		break;
@@ -511,7 +459,7 @@ void Keyboard(unsigned char key, int x, int y)
 		if (!alexCharging && alex && alex->armState < 2) {
 			alexCharging = true;
 			alexChargeStartTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
-			alex->enterCharge(); // CHARGE 상태로 변경
+			alex->enterCharge();
 			std::cout << "Alex 던지기 준비..." << std::endl;
 		}
 		break;
@@ -526,10 +474,8 @@ void Keyboard(unsigned char key, int x, int y)
 	glutPostRedisplay();
 }
 
-// 키보드 릴리즈 함수 추가
 void KeyboardUp(unsigned char key, int x, int y)
 {
-	// 타이틀 화면에서는 릴리즈 처리 안함
 	if (currentGameState == GameState::TITLE_SCREEN) {
 		return;
 	}
@@ -540,15 +486,13 @@ void KeyboardUp(unsigned char key, int x, int y)
 	case 'e': case 'E': // Steve 눈덩이 발사
 		if (steveCharging) {
 			fireSteveSnowball();
-			// 팔 내리기 시작 (빠르게 내리는 상태로)
-			if (steve) steve->enterThrow(); // 이제 LOWERING 상태로 전환
+			if (steve) steve->enterThrow();
 		}
 		break;
 	case 'o': case 'O': // Alex 눈덩이 발사
 		if (alexCharging) {
 			fireAlexSnowball();
-			// 팔 내리기 시작
-			if (alex) alex->enterThrow(); // LOWERING 상태로 전환
+			if (alex) alex->enterThrow();
 		}
 		break;
 	}
@@ -565,8 +509,8 @@ void fireSteveSnowball()
     float chargeRatio = std::min(chargeTime / maxChargeTime, 1.0f);
 
     float speed = minSpeed + (maxSpeed - minSpeed) * chargeRatio;
-    speed *= steve->throwingSpeed;     // 캐릭터 보정
-    speed = std::min(speed, maxSpeed); // 최종 상한
+    speed *= steve->throwingSpeed;
+    speed = std::min(speed, maxSpeed);
 
     glm::vec3 shootDirection = steveCamera.getFront();
     glm::vec3 startPos = steve->pos + shootDirection * 1.0f + glm::vec3(0, 1, 0) * 0.5f;
@@ -602,7 +546,6 @@ void fireAlexSnowball()
 	alexCharging = false;
 }
 
-// 눈덩이와 캐릭터의 충돌 감지 함수
 bool checkSnowballCharacterCollision(const Snowball& snowball, const glm::vec3& characterPos, const glm::vec3& boundingBoxSize)
 {
 	if (!snowball.getIsActive()) return false;
@@ -610,45 +553,35 @@ bool checkSnowballCharacterCollision(const Snowball& snowball, const glm::vec3& 
 	glm::vec3 snowballPos = snowball.getPosition();
 	float snowballRadius = snowball.getRadius();
 
-	// 캐릭터의 바운딩 박스 계산 (중심점 기준)
 	glm::vec3 characterMin = characterPos - boundingBoxSize / 2.0f;
 	glm::vec3 characterMax = characterPos + boundingBoxSize / 2.0f;
 
-	// 구와 AABB(축 정렬 바운딩 박스) 충돌 검사
-	// 가장 가까운 점 찾기
 	float closestX = std::max(characterMin.x, std::min(snowballPos.x, characterMax.x));
 	float closestY = std::max(characterMin.y, std::min(snowballPos.y, characterMax.y));
 	float closestZ = std::max(characterMin.z, std::min(snowballPos.z, characterMax.z));
 
 	glm::vec3 closestPoint(closestX, closestY, closestZ);
 
-	// 거리 계산
 	glm::vec3 distance = snowballPos - closestPoint;
 	float distanceSquared = glm::dot(distance, distance);
 
-	// 충돌 검사
 	return distanceSquared <= (snowballRadius * snowballRadius);
 }
 
-// 모든 눈덩이와 캐릭터 간의 충돌 검사
 void checkAllSnowballCollisions()
 {
 	for (const auto& snowball : snowballs) {
 		if (!snowball.getIsActive()) continue;
 
-		// Steve와의 충돌 검사
 		if (steve && checkSnowballCharacterCollision(snowball, steve->pos, steve->boundingBoxSize)) {
 			std::cout << "\n=== 경기 종료 ===\nSteve가 눈덩이에 맞았습니다!" << std::endl;
 
 			winner = Winner::ALEX;
 			finishScreen.setWinner(winner);
 			currentGameState = GameState::FINISH_SCREEN;
-
-			// 플레이어 객체는 화면 전환 위해 바로 삭제하지 않고, 입력/업데이트가 중지되도록 상태만 전환
 			return;
 		}
 
-		// Alex와의 충돌 검사
 		if (alex && checkSnowballCharacterCollision(snowball, alex->pos, alex->boundingBoxSize)) {
 			std::cout << "\n=== 경기 종료 ===\nAlex가 눈덩이에 맞았습니다!" << std::endl;
 
@@ -662,7 +595,6 @@ void checkAllSnowballCollisions()
 
 void SpecialKeyboard(int key, int x, int y)
 {
-	// 타이틀 화면에서는 특수키 처리 안함
 	if (currentGameState == GameState::TITLE_SCREEN) {
 		return;
 	}
@@ -676,13 +608,11 @@ void SpecialKeyboard(int key, int x, int y)
 		cameraFront = camera.front;
 		cameraUp = camera.up;
 	}
-	// 분할 모드면 화살표 입력은 Timer에서 input.isSpecialDown으로 처리 가능
 	glutPostRedisplay();
 }
 
 void SpecialKeyboardUp(int key, int x, int y)
 {
-	// 타이틀 화면에서는 특수키 릴리즈 처리 안함
 	if (currentGameState == GameState::TITLE_SCREEN) {
 		return;
 	}
@@ -693,7 +623,6 @@ void SpecialKeyboardUp(int key, int x, int y)
 
 void Mouse(int button, int state, int x, int y)
 {
-	// 타이틀 화면에서는 마우스 처리 안함
 	if (currentGameState == GameState::TITLE_SCREEN) {
 		return;
 	}
@@ -725,7 +654,7 @@ void Mouse(int button, int state, int x, int y)
 
 void MouseMotion(int x, int y)
 {
-	// 타이틀 화면이나 게임 중에도 마우스 움직임으로 카메라 회전 (현재는 비활성화)
+
 }
 
 void make_shaderProgram()
@@ -804,16 +733,12 @@ GLvoid drawScene()
 		return;
 	}
 
-	// 게임 화면 렌더링
-	// 현재 윈도우 크기 사용 (사용자가 창 크기 조절해도 반영)
 	int winW = glutGet(GLUT_WINDOW_WIDTH);
 	int winH = glutGet(GLUT_WINDOW_HEIGHT);
 	if (winW <= 0) winW = WinX;
 	if (winH <= 0) winH = WinY;
 
 	if (splitScreenMode && currentGameState == GameState::FIRST_PERSON_MODE) {
-		// 분할 화면 렌더링 (1인칭 모드)
-		// 카메라 위치를 캐릭터 기준으로 업데이트
 		if (steve) steveCamera.updateFromCharacterPosition(steve->pos);
 		if (alex) alexCamera.updateFromCharacterPosition(alex->pos);
 
@@ -823,7 +748,6 @@ GLvoid drawScene()
 		glm::mat4 steveProj = steveCamera.getProjectionMatrix(winW / 2, winH);
 		renderWorld(steveView, steveProj);
 
-		// 깊이 버퍼만 지워서 오른쪽 렌더가 겹치지 않게 함
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		// 오른쪽: Alex
@@ -832,11 +756,9 @@ GLvoid drawScene()
 		glm::mat4 alexProj = alexCamera.getProjectionMatrix(winW - winW / 2, winH);
 		renderWorld(alexView, alexProj);
 
-		// 캐릭터 얼굴 오버레이 렌더링
 		drawCharacterFaces(winW, winH);
 	}
 	else {
-		// 단일 화면(기본 3인칭)
 		glViewport(0, 0, winW, winH);
 		glm::mat4 view = camera.getViewMatrix();
 		glm::mat4 proj = camera.getProjectionMatrix(winW, winH);
@@ -846,10 +768,9 @@ GLvoid drawScene()
 	glutSwapBuffers();
 }
 
-GLvoid drawSplitScreen() {
-	// 이제 drawScene이 분할/단일을 모두 다루므로 이 함수는 호출 경로 필요시 비워두거나 drawScene에 통합된 상태 유지.
-	// 기존 코드와 중복되지 않도록 drawScene이 사용되도록 유지하세요.
-	// (함수 정의는 남겨두되 내부는 비워두어도 무방)
+GLvoid drawSplitScreen() 
+{
+	
 }
 
 GLvoid renderWorld(const glm::mat4& view, const glm::mat4& projection)
@@ -891,9 +812,7 @@ GLvoid renderWorld(const glm::mat4& view, const glm::mat4& projection)
 
 	if (useTextureLoc != -1) glUniform1i(useTextureLoc, 1);
 
-	// Steve / Alex: 클래스 내부 pos를 사용해서 그리기
 	if (steve) {
-		// steve->draw 내부에서 pos 기반으로 변환하도록 구현되어 있으므로 model transform 전달 불필요
 		steve->draw(modelLoc);
 	}
 	if (alex) {
@@ -911,7 +830,6 @@ GLvoid Reshape(int w, int h)
 	glViewport(0, 0, w, h);
 }
 
-// per-frame 이동 업데이트 (KeyManager 폴링)
 void updateStevePosition(float deltaTime)
 {
 	steve->moveDir = glm::vec2(0.0f, 0.0f);
@@ -947,14 +865,13 @@ void updateAlexPosition(float deltaTime)
 	}
 }
 
-// 이동 상태 확인은 그대로 유지 (내부 상태가 바뀌면 Character.changeState로 처리됨)
 void checkSteveMoving()
 {
 	bool moving = input.isKeyDown('w') || input.isKeyDown('W') ||
 		input.isKeyDown('s') || input.isKeyDown('S') ||
 		input.isKeyDown('a') || input.isKeyDown('A') ||
 		input.isKeyDown('d') || input.isKeyDown('D');
-	if (!moving && steve) steve->changeState(1, 0); // leg idle
+	if (!moving && steve) steve->changeState(1, 0);
 }
 
 
@@ -964,7 +881,7 @@ void checkAlexMoving()
 		input.isKeyDown('j') || input.isKeyDown('J') ||
 		input.isKeyDown('k') || input.isKeyDown('K') ||
 		input.isKeyDown('l') || input.isKeyDown('L');
-	if (!moving && alex) alex->changeState(1, 0); // leg idle
+	if (!moving && alex) alex->changeState(1, 0);
 }
 
 void TimerFunction(int value)
@@ -977,18 +894,14 @@ void TimerFunction(int value)
 
 	float deltaTime = 0.016f;
 
-	// 눈 애니메이션 업데이트
 	snowSystem.updateAnimations(deltaTime);
 
-	// 눈덩이 업데이트
 	for (auto& sb : snowballs) sb.update(deltaTime, snowSystem, gameMap);
 	snowballs.erase(std::remove_if(snowballs.begin(), snowballs.end(),
 		[](const Snowball& s) { return !s.getIsActive(); }), snowballs.end());
 
-	// 충돌 검사
 	checkAllSnowballCollisions();
 
-	// CHARGE 상태일 때 팔 각도를 차징 비율로 업데이트 (0~π 라디안)
 	if (steve && steveCharging && steve->armState == 2) {
 		float currentTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
 		float chargeTime = currentTime - steveChargeStartTime;

@@ -18,7 +18,6 @@ void main ()
 {
 	vec3 objectColor;
 	
-	// 텍스처 사용 여부에 따라 색상 결정
 	if (useTexture) {
 		objectColor = texture(texture1, TexCoord).rgb;
 	} else {
@@ -45,7 +44,6 @@ void main ()
 	float specularLight = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 	vec3 specular = specularLight * lightColor;
 
-	// 조명 계산에 텍스처 색상 적용
 	vec3 result = (ambient + diffuse + specular) * objectColor;
 
 	FragColor = vec4(result, 1.0f);

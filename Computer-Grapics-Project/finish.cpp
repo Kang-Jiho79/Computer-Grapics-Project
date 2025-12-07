@@ -13,9 +13,7 @@ void FinishScreen::initialize() {
 }
 
 void FinishScreen::initializeBuffers() {
-    // 전체 화면 쿼드 (NDC, title과 동일 레이아웃: pos at location 0, texcoord at location 2)
     const std::vector<float> vertices = {
-        // pos        // uv
         -1.0f,  1.0f,  0.0f, 1.0f,
         -1.0f, -1.0f,  0.0f, 0.0f,
          1.0f, -1.0f,  1.0f, 0.0f,

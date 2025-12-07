@@ -13,7 +13,7 @@ namespace Steve {
 		GLfloat moveSpeed = 0.085f; 
 		GLfloat throwingSpeed = 1.3f; 
 		GLint armState = 0; // 0: IDLE, 1: RUN, 2: CHARGE, 3: LOWERING
-		GLfloat armAngle = 0.0f; // 라디안 사용
+		GLfloat armAngle = 0.0f;
 		GLfloat armDir = 1.0f; 
 		GLint legState = 0; // 0: IDLE, 1: RUN
 		GLfloat legAngle = 0.0f; 
@@ -64,29 +64,26 @@ namespace Steve {
 		void changeState(int body, int newState) {
 			if (body == 0) {
 				if (armState != newState) {
-					armState = newState; // arm
-					// IDLE/RUN 전환 시 기본 각도 초기화
+					armState = newState;
 					if (newState == 0 || newState == 1) armAngle = 0.0f;
-					if (newState == 1) armDir = 1.0f; // RUN
+					if (newState == 1) armDir = 1.0f;
 				}
 			}
 			else {
 				if (legState != newState) {
-					legState = newState; // leg
+					legState = newState;
 					legAngle = 0.0f;
-					if (newState == 1) legDir = -1.0f; // RUN
+					if (newState == 1) legDir = -1.0f;
 				}
 			}
 		}
 
 		void enterCharge() {
 			armState = 2; // CHARGE
-			// 차징 시작 시 각도는 Timer에서 비율에 따라 갱신됨
 			armAngle = 0.0f;
 		}
 
 		void enterThrow() {
-			// 발사 후 팔 내리는 상태로 전환
 			armState = 3; // LOWERING
 		}
 
@@ -134,7 +131,6 @@ namespace Steve {
 						glm::vec3 blockMin = { gx - 0.5f, 0.0f, gz - 0.5f };
 						glm::vec3 blockMax = { gx + 0.5f, snowHeight, gz + 0.5f };
 
-						// AABB 
 						bool collisionX = characterMin.x <= blockMax.x && characterMax.x >= blockMin.x;
 						bool collisionZ = characterMin.z <= blockMax.z && characterMax.z >= blockMin.z;
 
@@ -171,33 +167,28 @@ namespace Steve {
 		}
 
 		void update(const Map& map, const Snow& snow) {
-			// 1) 상태 전환 (팔/다리)
 			const bool isMoving = (moveDir.x != 0.0f || moveDir.y != 0.0f);
 			if (isMoving) {
-				if (armState < 2) changeState(0, 1); // RUN
-				changeState(1, 1); // leg RUN
+				if (armState < 2) changeState(0, 1);
+				changeState(1, 1);
 			}
 			else {
-				if (armState < 2) changeState(0, 0); // IDLE
-				changeState(1, 0); // leg IDLE
+				if (armState < 2) changeState(0, 0);
+				changeState(1, 0);
 			}
 
-			// 2) 이동 속도 계산 (눈 충돌에 따른 감속 + 상한 클램프)
 			int snowTypeAtPos = isCollidingWithSnow(pos, snow);
 			float currentMoveSpeed = moveSpeed;
-			if (snowTypeAtPos == 1) currentMoveSpeed *= 0.7f; // 얕은 눈 감속
+			if (snowTypeAtPos == 1) currentMoveSpeed *= 0.5f;
 			const float maxMoveSpeed = 1.5f;
 			if (currentMoveSpeed > maxMoveSpeed) currentMoveSpeed = maxMoveSpeed;
 
-			// 3) 입력 벡터 정규화
 			glm::vec2 dir = moveDir;
 			float len = glm::length(dir);
 			if (len > 1e-4f) dir /= len;
 
-			// 4) 축별로 충돌 검사하며 이동
 			glm::vec3 nextPos = pos;
 
-			// X축 이동
 			nextPos.x += dir.x * currentMoveSpeed;
 			bool canMoveX = (isCollidingWithSnow(nextPos, snow) < 2) &&
 				(!isCollidingWithObstacles(nextPos, map)) &&
@@ -206,7 +197,6 @@ namespace Steve {
 				pos.x = nextPos.x;
 			}
 
-			// Z축 이동
 			nextPos = pos;
 			nextPos.z += dir.y * currentMoveSpeed;
 			bool canMoveZ = (isCollidingWithSnow(nextPos, snow) < 2) &&
@@ -216,7 +206,6 @@ namespace Steve {
 				pos.z = nextPos.z;
 			}
 
-			// 5) 팔 상태별 애니메이션
 			switch (armState) {
 			case 0: // IDLE
 				break;
@@ -226,7 +215,6 @@ namespace Steve {
 					armDir = -armDir;
 				break;
 			case 2: // CHARGE
-				// 팔 각도는 TimerFunction에서 -π * ratio 로 갱신
 				break;
 			case 3: // LOWERING
 			{
@@ -241,7 +229,6 @@ namespace Steve {
 			break;
 			}
 
-			// 6) 다리 애니메이션
 			switch (legState) {
 			case 0: // IDLE
 				break;
@@ -273,9 +260,9 @@ namespace Steve {
 
 			glm::mat4 Mbase = glm::translate(glm::mat4(1.0f), pos);
 
-			float alArm = armAngle; // 라디안 각도
+			float alArm = armAngle;
 			float arArm = -alArm;
-			if (armState >= 2) arArm = 0.0f; // 차징/내리는 동안 오른팔 고정
+			if (armState >= 2) arArm = 0.0f;
 
 			float aLeg = std::sin(legAngle) * glm::radians(60.0f);
 			aLeg *= -1.0f;
@@ -298,7 +285,5 @@ namespace Steve {
 			glm::mat4 Mlr = Mbase * glm::translate(glm::mat4(1.0f), gLegR.offset) * glm::translate(glm::mat4(1.0f), gLegR.pivot) * glm::rotate(glm::mat4(1.0f), -aLeg, glm::vec3(1, 0, 0)) * glm::translate(glm::mat4(1.0f), -gLegR.pivot);
 			drawVAO(gLegR, Mlr);
 		}
-
-		
 	};
 }

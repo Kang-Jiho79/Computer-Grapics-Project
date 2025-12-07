@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
+#include <gl/freeglut.h>
 
 Camera::Camera(glm::vec3 pos, glm::vec3 worldUpVec, float yawAngle, float pitchAngle)
     : position(pos)
@@ -31,18 +32,18 @@ void Camera::processSpecialKeyboard(int key)
     float rotationSpeed = 2.0f;
 
     switch (key) {
-    case 101: // GLUT_KEY_UP
+    case GLUT_KEY_UP:
         pitch += rotationSpeed;
         if (pitch > 89.0f) pitch = 89.0f;
         break;
-    case 103: // GLUT_KEY_DOWN
+    case GLUT_KEY_DOWN:
         pitch -= rotationSpeed;
         if (pitch < -89.0f) pitch = -89.0f;
         break;
-    case 100: // GLUT_KEY_LEFT
+    case GLUT_KEY_LEFT:
         yaw -= rotationSpeed;
         break;
-    case 102: // GLUT_KEY_RIGHT
+    case GLUT_KEY_RIGHT:
         yaw += rotationSpeed;
         break;
     }
@@ -108,14 +109,12 @@ void Camera::setAngles(float yawAngle, float pitchAngle)
 
 void Camera::updateCameraVectors()
 {
-    // yaw와 pitch로부터 새로운 Front 벡터 계산
     glm::vec3 frontVec;
     frontVec.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     frontVec.y = sin(glm::radians(pitch));
     frontVec.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     front = glm::normalize(frontVec);
 
-    // Front 벡터로부터 Right와 Up 벡터 다시 계산
     right = glm::normalize(glm::cross(front, worldUp));
     up = glm::normalize(glm::cross(right, front));
 }
